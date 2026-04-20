@@ -48,10 +48,16 @@ for (const e of data.edges) {
   if (!g.hasNode(e.source) || !g.hasNode(e.target)) { missingSkip++; continue; }
   if (e.source === e.target) continue;
   if (g.hasEdge(e.source, e.target)) { dupSkip++; continue; }
+  // direction별 엣지 두께 차등 (mutual은 두껍게)
+  const isMutual = (e.direction === "mutual");
+  const baseSize = e.size || (Math.log2(1 + (e.weight || 1)) * 0.5 + 0.3);
   g.addEdge(e.source, e.target, {
     weight:    e.weight || 1,
     direction: e.direction || "mutual",
     relType:   e.relType || "",
+    color:     e.color || "#3a4452",
+    size:      isMutual ? Math.max(baseSize, 0.8) : baseSize,
+    type:      isMutual ? "line" : "arrow",
   });
 }
 console.log(`     Graph: ${g.order} nodes, ${g.size} edges  (skipped: dup=${dupSkip}, missing=${missingSkip})`);

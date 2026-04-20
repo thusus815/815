@@ -353,10 +353,10 @@ async function init() {
       // hover 시: hover 노드 + 직접 이웃은 라벨 강제 표시·확대
       if (hovered) {
         if (node === hovered) {
-          return { ...data, highlighted: true, zIndex: 10, size: (data.size || 3) * 1.5 };
+          return { ...data, zIndex: 10, size: (data.size || 3) * 1.8, color: '#58a6ff' };
         }
         if (graph.areNeighbors(hovered, node)) {
-          return { ...data, zIndex: 5, label: data.label || String(node) };
+          return { ...data, zIndex: 5, label: data.label || String(node), size: (data.size || 3) * 1.2 };
         }
       }
       if (!data.isImportant) return { ...data, hidden: true };
