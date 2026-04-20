@@ -309,6 +309,140 @@
   .footer-links a:hover { color: var(--text); }
   .footer-copy { width: 100%; font-size: 12px; color: var(--muted); margin-top: 8px; }
 
+  /* ══════════════════════════════════════════════════════════
+     CINEMATIC INTRO
+  ══════════════════════════════════════════════════════════ */
+  #intro {
+    position: fixed; inset: 0; z-index: 1000;
+    background: #0a0807;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  #intro.done { pointer-events: none; }
+
+  /* 배경 이미지 레이어 — 흑백 줌인 */
+  .intro-bg {
+    position: absolute; inset: -8%;
+    background: url('park_sungil_portrait.jpg') center/cover no-repeat;
+    filter: grayscale(1) contrast(0.85) brightness(0.45);
+    transform: scale(1.12);
+    animation: introBgReveal 7s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+  }
+  @keyframes introBgReveal {
+    0%   { transform: scale(1.25); filter: grayscale(1) contrast(0.7) brightness(0.3); }
+    40%  { transform: scale(1.10); filter: grayscale(1) contrast(0.85) brightness(0.45); }
+    75%  { transform: scale(1.06); filter: grayscale(0.6) contrast(0.9) brightness(0.5) sepia(0.3); }
+    100% { transform: scale(1.0);  filter: grayscale(0.1) contrast(1) brightness(0.55) sepia(0.15); }
+  }
+
+  /* 비네팅 */
+  .intro-vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 70% at 50% 50%,
+      transparent 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+  }
+
+  /* 날짜 텍스트 */
+  .intro-date {
+    position: relative; z-index: 2;
+    font-size: clamp(11px, 1.5vw, 14px);
+    letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(200,180,140,0.0);
+    font-weight: 400;
+    margin-bottom: 28px;
+    animation: introDateFade 1.2s ease 2.2s forwards;
+  }
+  @keyframes introDateFade {
+    to { color: rgba(200,180,140,0.85); }
+  }
+
+  /* 박순길 카드 */
+  .intro-card {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
+    opacity: 0; transform: translateY(30px);
+    animation: introCardUp 0.9s cubic-bezier(0.34,1.56,0.64,1) 3.2s forwards;
+    max-width: 480px; width: 90%;
+  }
+  @keyframes introCardUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 말풍선 카드 */
+  .intro-bubble {
+    background: rgba(10,8,7,0.78);
+    border: 1px solid rgba(200,180,140,0.25);
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    backdrop-filter: blur(8px);
+    width: 100%;
+  }
+  .intro-bubble-tag {
+    font-size: 11px; letter-spacing: 2px;
+    color: rgba(200,180,140,0.5); margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .intro-speech {
+    font-size: clamp(20px, 4vw, 30px);
+    font-weight: 800; letter-spacing: -0.5px;
+    line-height: 1.45; color: #f0e8d8;
+    min-height: 90px;
+  }
+  .intro-speech .cursor-blink {
+    display: inline-block; width: 2px; height: 1.1em;
+    background: rgba(200,180,140,0.7);
+    vertical-align: text-bottom;
+    animation: blink 0.8s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+  .intro-meta {
+    margin-top: 16px; font-size: 13px;
+    color: rgba(200,180,140,0.45); line-height: 1.6;
+    padding-top: 14px; border-top: 1px solid rgba(200,180,140,0.12);
+  }
+
+  /* 건너뛰기 */
+  .intro-skip {
+    position: absolute; bottom: 32px; right: 32px; z-index: 10;
+    font-size: 12px; letter-spacing: 1px;
+    color: rgba(200,180,140,0.4);
+    border: 1px solid rgba(200,180,140,0.15);
+    padding: 7px 16px; border-radius: 20px;
+    cursor: pointer; transition: all 0.2s;
+    opacity: 0; animation: introDateFade 0.6s ease 1.5s forwards;
+  }
+  .intro-skip:hover { color: rgba(200,180,140,0.8); border-color: rgba(200,180,140,0.4); }
+
+  /* 스크롤 유도 */
+  .intro-scroll-hint {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    opacity: 0; animation: introDateFade 0.8s ease 6.5s forwards;
+    color: rgba(200,180,140,0.5); font-size: 12px; letter-spacing: 1px;
+  }
+  .intro-scroll-arrow {
+    width: 1px; height: 36px;
+    background: linear-gradient(to bottom, rgba(200,180,140,0.4), transparent);
+    animation: scrollArrow 1.5s ease-in-out 7s infinite;
+  }
+  @keyframes scrollArrow {
+    0%,100% { opacity:0.4; transform: scaleY(1); }
+    50% { opacity:1; transform: scaleY(1.15); }
+  }
+
+  /* 퇴장 애니메이션 */
+  #intro.exit {
+    animation: introExit 0.8s cubic-bezier(0.4,0,1,1) forwards;
+  }
+  @keyframes introExit {
+    0%   { opacity:1; transform: scale(1); }
+    100% { opacity:0; transform: scale(1.04); }
+  }
+
   /* ── Scroll reveal ───────────────────────────────────────── */
   .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.5s ease, transform 0.5s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
@@ -328,6 +462,31 @@
 </style>
 </head>
 <body>
+
+<!-- ══ CINEMATIC INTRO ══ -->
+<div id="intro">
+  <div class="intro-bg"></div>
+  <div class="intro-vignette"></div>
+
+  <div class="intro-date">1930년 1월 21일 · 충청북도 청주</div>
+
+  <div class="intro-card">
+    <div class="intro-bubble">
+      <div class="intro-bubble-tag">청주공립농업학교 3학년</div>
+      <div class="intro-speech" id="intro-speech"><span class="cursor-blink"></span></div>
+      <div class="intro-meta">
+        자료 기반 가상 인물 — 실제 청주농고 학생들의 기록을 바탕으로 합성했습니다.
+      </div>
+    </div>
+  </div>
+
+  <div class="intro-scroll-hint">
+    <span>이야기를 들어보세요</span>
+    <div class="intro-scroll-arrow"></div>
+  </div>
+
+  <div class="intro-skip" id="intro-skip">건너뛰기 ✕</div>
+</div>
 
 <!-- Nav -->
 <nav>
@@ -560,7 +719,70 @@
 </footer>
 
 <script>
-  // Scroll reveal
+  /* ── Cinematic Intro ────────────────────────────────────── */
+  const introEl   = document.getElementById('intro');
+  const speechEl  = document.getElementById('intro-speech');
+  const skipBtn   = document.getElementById('intro-skip');
+
+  const LINE1 = "나는 박가 순길이야.";
+  const LINE2 = "\n청주농고에 다녀.";
+
+  function typeText(el, text, delay, speed, onDone) {
+    let i = 0;
+    setTimeout(() => {
+      const iv = setInterval(() => {
+        if (i < text.length) {
+          const ch = text[i++];
+          const cursor = el.querySelector('.cursor-blink');
+          if (ch === '\n') {
+            cursor.before(document.createElement('br'));
+          } else {
+            const span = document.createElement('span');
+            span.textContent = ch;
+            cursor.before(span);
+          }
+        } else {
+          clearInterval(iv);
+          if (onDone) onDone();
+        }
+      }, speed);
+    }, delay);
+  }
+
+  function dismissIntro() {
+    introEl.classList.add('exit');
+    introEl.addEventListener('animationend', () => {
+      introEl.style.display = 'none';
+      introEl.classList.add('done');
+    }, { once: true });
+    document.body.style.overflow = '';
+  }
+
+  // 첫 줄 타이핑 (3.5초 후 시작)
+  typeText(speechEl, LINE1, 3500, 70, () => {
+    // 둘째 줄 (잠시 pause)
+    typeText(speechEl, LINE2, 500, 70, () => {
+      // 타이핑 완료 — 커서 제거 후 자동 dismiss
+      setTimeout(() => {
+        const cursor = speechEl.querySelector('.cursor-blink');
+        if (cursor) cursor.style.animation = 'none';
+      }, 800);
+      // 7.5초 후 자동 퇴장
+      setTimeout(dismissIntro, 3000);
+    });
+  });
+
+  // 클릭 또는 스크롤로 건너뛰기
+  skipBtn.addEventListener('click', e => { e.stopPropagation(); dismissIntro(); });
+  introEl.addEventListener('click', dismissIntro);
+  document.addEventListener('keydown', e => {
+    if (['Escape','Enter',' '].includes(e.key)) dismissIntro();
+  }, { once: true });
+
+  // 본문 스크롤 막기 (인트로 중)
+  document.body.style.overflow = 'hidden';
+
+  /* ── Scroll reveal ────────────────────────────────────────── */
   const observer = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
   }, { threshold: 0.1 });
