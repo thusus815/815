@@ -53,6 +53,18 @@ jobs:
             echo "build_graph.py not found, skipping"
           fi
 
+      - name: Auto-layout (Louvain + ForceAtlas2 → graph.gexf)
+        run: |
+          if [ -f vault/scripts/layout/build_layout.mjs ]; then
+            cd vault/scripts/layout
+            npm ci --no-audit --no-fund
+            node build_layout.mjs
+            cd ../../..
+            echo "Auto-layout complete"
+          else
+            echo "build_layout.mjs not found, skipping (graph.gexf will use existing file)"
+          fi
+
       - name: Copy vault content to Quartz
         run: |
           rm -rf quartz/content
