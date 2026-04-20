@@ -222,6 +222,25 @@ async function tryLoadGexf() {
       return null;
     }
     const g = parser(graphology.Graph, xml);
+    // 좌표/필수 속성 가드: 일부 노드가 x/y 누락된 경우 랜덤 좌표로 복구
+    let fixed = 0;
+    g.forEachNode((n, attrs) => {
+      if (!Number.isFinite(attrs.x) || !Number.isFinite(attrs.y)) {
+        g.setNodeAttribute(n, 'x', (Math.random() - 0.5) * 2000);
+        g.setNodeAttribute(n, 'y', (Math.random() - 0.5) * 2000);
+        fixed++;
+      }
+      if (!Number.isFinite(attrs.size)) g.setNodeAttribute(n, 'size', 5);
+      if (!attrs.color) g.setNodeAttribute(n, 'color', '#888');
+      if (!attrs.label) g.setNodeAttribute(n, 'label', String(n));
+      g.setNodeAttribute(n, 'origColor', g.getNodeAttribute(n, 'color'));
+    });
+    g.forEachEdge((e, attrs) => {
+      if (!Number.isFinite(attrs.size)) g.setEdgeAttribute(e, 'size', 0.5);
+      if (!attrs.color) g.setEdgeAttribute(e, 'color', '#30363d');
+      g.setEdgeAttribute(e, 'origColor', g.getEdgeAttribute(e, 'color'));
+    });
+    if (fixed > 0) console.warn(`GEXF: ${fixed}개 노드 좌표 누락, 랜덤 복구`);
     return g;
   } catch (e) {
     console.warn('GEXF 로드 실패, JSON으로 폴백:', e.message);

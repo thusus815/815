@@ -113,6 +113,19 @@ forceAtlas2.assign(g, {
 const dt = ((Date.now() - t0) / 1000).toFixed(1);
 console.log(`     done in ${dt}s`);
 
+// NaN/Infinity 좌표 복구 (isolated node 등에서 FA2가 NaN을 남길 수 있음)
+let nanFix = 0;
+g.forEachNode((n) => {
+  const x = g.getNodeAttribute(n, "x");
+  const y = g.getNodeAttribute(n, "y");
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    g.setNodeAttribute(n, "x", (Math.random() - 0.5) * 2000);
+    g.setNodeAttribute(n, "y", (Math.random() - 0.5) * 2000);
+    nanFix++;
+  }
+});
+if (nanFix) console.log(`     Fixed ${nanFix} NaN/Infinity coordinates (isolated nodes)`);
+
 console.log("[6/6] Writing GEXF...");
 const xml = gexf.write(g, { format: "gexf", pretty: true });
 fs.writeFileSync(OUT, xml, "utf8");
