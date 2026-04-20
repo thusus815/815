@@ -6,6 +6,7 @@
 <title>815 독립운동 아카이브 — 지식 그래프</title>
 <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.7.1/dist/graphology-library.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-gexf@0.13.2/dist/graphology-gexf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sigma@3/dist/sigma.min.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -185,6 +186,8 @@
 <script>
 const BASE = location.origin + location.pathname.replace(/\/graph\.html$/, '');
 const GRAPH_JSON = BASE + '/graph_data.json';
+const GRAPH_GEXF = BASE + '/graph.gexf';
+let usedGexf = false;
 
 const COLOR_MAP = {
   "친일인물": "#FF6B35",
@@ -205,18 +208,34 @@ let focusCenter = null;       // 중심 노드 ID
 let focusDepth = 1;           // 현재 보여주는 이웃 깊이
 let visibleNodes = new Set(); // 현재 보이는 노드 집합
 
-async function init() {
-  const res  = await fetch(GRAPH_JSON);
+async function tryLoadGexf() {
+  try {
+    const res = await fetch(GRAPH_GEXF, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    if (!xml.includes('<gexf')) return null;
+    const parser = (window.graphologyGexf && window.graphologyGexf.parse)
+                || (window.gexf && window.gexf.parse)
+                || (window.graphologyLibrary && window.graphologyLibrary.gexf && window.graphologyLibrary.gexf.parse);
+    if (!parser) {
+      console.warn('GEXF 파서를 찾을 수 없음');
+      return null;
+    }
+    const g = parser(graphology.Graph, xml);
+    return g;
+  } catch (e) {
+    console.warn('GEXF 로드 실패, JSON으로 폴백:', e.message);
+    return null;
+  }
+}
+
+async function loadFromJson() {
+  const res = await fetch(GRAPH_JSON);
   const data = await res.json();
+  const g = new graphology.Graph({ multi: false });
 
-  document.getElementById('stat-nodes').textContent = `노드 ${data.nodes.length}`;
-  document.getElementById('stat-edges').textContent = `엣지 ${data.edges.length}`;
-
-  graph = new graphology.Graph({ multi: false });
-
-  // 노드 추가 (랜덤 초기 위치)
   data.nodes.forEach(n => {
-    graph.addNode(n.id, {
+    g.addNode(n.id, {
       label: n.label,
       color: n.color || '#888',
       size:  n.size  || 3,
@@ -227,35 +246,62 @@ async function init() {
     });
   });
 
-  // 엣지 추가 — 방향성/가중치/관계타입 메타 보존
-  let mutualEdges = 0, fwdEdges = 0;
+  let mutualEdges = 0;
   data.edges.forEach(e => {
     try {
-      if (graph.hasNode(e.source) && graph.hasNode(e.target) && !graph.hasEdge(e.source, e.target)) {
-        graph.addEdge(e.source, e.target, {
+      if (g.hasNode(e.source) && g.hasNode(e.target) && !g.hasEdge(e.source, e.target)) {
+        g.addEdge(e.source, e.target, {
           size: e.size || 0.5,
           color: e.color || '#30363d',
           origColor: e.color || '#30363d',
           weight: e.weight || 1,
           direction: e.direction || 'forward',
           relType: e.relType || '',
-          type: e.type || 'line',
         });
-        if (e.direction === 'mutual') mutualEdges++; else fwdEdges++;
+        if (e.direction === 'mutual') mutualEdges++;
       }
     } catch(_) {}
   });
+  g._mutualEdges = mutualEdges;
+  return g;
+}
 
+async function init() {
+  // GEXF(Gephi 디자인 결과) 우선, 실패 시 JSON 폴백
+  graph = await tryLoadGexf();
+  if (graph) {
+    usedGexf = true;
+    console.log('GEXF 로드됨 — Gephi 디자인 사용');
+    // GEXF의 viz:color/size를 origColor/size 속성으로 정규화
+    let mutualEdges = 0;
+    graph.forEachNode((n, attrs) => {
+      const c = attrs.color || '#888';
+      graph.setNodeAttribute(n, 'origColor', c);
+      if (!attrs.tags) graph.setNodeAttribute(n, 'tags', []);
+    });
+    graph.forEachEdge((e, attrs) => {
+      const c = attrs.color || '#30363d';
+      graph.setEdgeAttribute(e, 'origColor', c);
+      if (attrs.direction === 'mutual') mutualEdges++;
+    });
+    graph._mutualEdges = mutualEdges;
+  } else {
+    console.log('JSON 로드 (Gephi 미적용 상태)');
+    graph = await loadFromJson();
+  }
+
+  document.getElementById('stat-nodes').textContent = `노드 ${graph.order}`;
   document.getElementById('stat-edges').textContent =
-    `엣지 ${data.edges.length} (양방향 ${mutualEdges})`;
+    `엣지 ${graph.size} (양방향 ${graph._mutualEdges || 0})`;
 
   // 가독성: degree 기반 핵심 노드 선별
   const degreeRank = [];
   graph.forEachNode(n => degreeRank.push([n, graph.degree(n)]));
   degreeRank.sort((a, b) => b[1] - a[1]);
 
-  const TOP_NODES = 120;       // 첫 화면 표시 노드 수
-  const TOP_LABELS = 40;       // 라벨 표시 수
+  // GEXF는 이미 디자인됐으므로 더 관대하게, JSON 폴백은 빡빡하게
+  const TOP_NODES  = usedGexf ? 1724 : 120;
+  const TOP_LABELS = usedGexf ? 80 : 40;
   const importantNodes = new Set(degreeRank.slice(0, TOP_NODES).map(x => x[0]));
   const labeledNodes   = new Set(degreeRank.slice(0, TOP_LABELS).map(x => x[0]));
   graph.forEachNode((n, attrs) => {
@@ -305,13 +351,17 @@ async function init() {
     },
   });
 
-  // UI 먼저 보여주고 레이아웃은 다음 틱에 (블로킹 방지)
-  document.getElementById('loading').querySelector('div:last-child').textContent =
-    '레이아웃 계산 중... (5~10초)';
-  setTimeout(() => {
-    runLayout();
+  // GEXF는 이미 좌표가 있어 레이아웃 계산 불필요
+  if (usedGexf) {
     document.getElementById('loading').style.display = 'none';
-  }, 50);
+  } else {
+    document.getElementById('loading').querySelector('div:last-child').textContent =
+      '레이아웃 계산 중... (5~10초)';
+    setTimeout(() => {
+      runLayout();
+      document.getElementById('loading').style.display = 'none';
+    }, 50);
+  }
 
   // 클릭 → 부분 그래프 모드 진입
   sigmaInstance.on('clickNode', ({ node }) => {

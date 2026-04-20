@@ -75,6 +75,9 @@ jobs:
           if [ -f vault/graph_data.json ]; then
             cp vault/graph_data.json quartz/public/graph_data.json
           fi
+          if [ -f vault/graph.gexf ]; then
+            cp vault/graph.gexf quartz/public/graph.gexf
+          fi
           if [ -f vault/graph.html ]; then
             cp vault/graph.html quartz/public/graph.html
           fi
