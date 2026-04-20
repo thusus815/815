@@ -1,0 +1,79 @@
+{
+  "collapse-filter": true,
+  "search": "-path:\"00-원자료\" -path:\"_가이드\" -path:\"99-attachments\" -path:\"08-스냅샷\"",
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": true,
+  "showOrphans": false,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:\"01-인물/항일\"",
+      "color": {
+        "a": 1,
+        "rgb": 6069503
+      }
+    },
+    {
+      "query": "path:\"01-인물\" -path:\"01-인물/항일\"",
+      "color": {
+        "a": 1,
+        "rgb": 16737892
+      }
+    },
+    {
+      "query": "path:\"07-항일학교\"",
+      "color": {
+        "a": 1,
+        "rgb": 10901503
+      }
+    },
+    {
+      "query": "path:\"03-단체\"",
+      "color": {
+        "a": 1,
+        "rgb": 15909376
+      }
+    },
+    {
+      "query": "path:\"02-사건\"",
+      "color": {
+        "a": 1,
+        "rgb": 10813440
+      }
+    },
+    {
+      "query": "path:\"04-지역\"",
+      "color": {
+        "a": 1,
+        "rgb": 10261423
+      }
+    },
+    {
+      "query": "path:\"05-문헌\"",
+      "color": {
+        "a": 1,
+        "rgb": 440020
+      }
+    },
+    {
+      "query": "path:\"06-서훈\"",
+      "color": {
+        "a": 1,
+        "rgb": 16282390
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": true,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": true,
+  "centerStrength": 0.5,
+  "repelStrength": 12,
+  "linkStrength": 1,
+  "linkDistance": 250,
+  "scale": 0.13168724279834912,
+  "close": false
+}

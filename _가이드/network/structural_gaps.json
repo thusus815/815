@@ -1,0 +1,272 @@
+[
+  {
+    "node": "매일신보",
+    "gap_score": 127.242,
+    "betweenness": 0.175,
+    "cross_ratio": 0.727,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 337
+  },
+  {
+    "node": "조선총독부",
+    "gap_score": 101.647,
+    "betweenness": 0.1427,
+    "cross_ratio": 0.712,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 330
+  },
+  {
+    "node": "충북_친일잔재_기초조사_2020",
+    "gap_score": 53.009,
+    "betweenness": 0.0876,
+    "cross_ratio": 0.605,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 38
+  },
+  {
+    "node": "중추원",
+    "gap_score": 42.204,
+    "betweenness": 0.0574,
+    "cross_ratio": 0.735,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 230
+  },
+  {
+    "node": "동아일보",
+    "gap_score": 41.52,
+    "betweenness": 0.0487,
+    "cross_ratio": 0.852,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 230
+  },
+  {
+    "node": "경성일보",
+    "gap_score": 31.626,
+    "betweenness": 0.0384,
+    "cross_ratio": 0.824,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 221
+  },
+  {
+    "node": "경성부",
+    "gap_score": 26.849,
+    "betweenness": 0.0458,
+    "cross_ratio": 0.586,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 232
+  },
+  {
+    "node": "상호",
+    "gap_score": 20.472,
+    "betweenness": 0.0219,
+    "cross_ratio": 0.933,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 165
+  },
+  {
+    "node": "국민총력조선연맹",
+    "gap_score": 11.137,
+    "betweenness": 0.0145,
+    "cross_ratio": 0.769,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 169
+  },
+  {
+    "node": "조선일보",
+    "gap_score": 9.688,
+    "betweenness": 0.0127,
+    "cross_ratio": 0.763,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 135
+  },
+  {
+    "node": "조선임전보국단",
+    "gap_score": 7.817,
+    "betweenness": 0.0184,
+    "cross_ratio": 0.426,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 148
+  },
+  {
+    "node": "박영효",
+    "gap_score": 6.315,
+    "betweenness": 0.011,
+    "cross_ratio": 0.575,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 153
+  },
+  {
+    "node": "김연수",
+    "gap_score": 5.315,
+    "betweenness": 0.0111,
+    "cross_ratio": 0.48,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 75
+  },
+  {
+    "node": "민영은",
+    "gap_score": 4.849,
+    "betweenness": 0.014,
+    "cross_ratio": 0.347,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 49
+  },
+  {
+    "node": "국민정신총동원조선연맹",
+    "gap_score": 4.848,
+    "betweenness": 0.0108,
+    "cross_ratio": 0.451,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 153
+  },
+  {
+    "node": "한일합병",
+    "gap_score": 4.308,
+    "betweenness": 0.009,
+    "cross_ratio": 0.48,
+    "community": "사건",
+    "bridges_comms": 4,
+    "degree": 150
+  },
+  {
+    "node": "중일전쟁",
+    "gap_score": 4.023,
+    "betweenness": 0.0079,
+    "cross_ratio": 0.507,
+    "community": "사건",
+    "bridges_comms": 4,
+    "degree": 140
+  },
+  {
+    "node": "남궁영",
+    "gap_score": 3.919,
+    "betweenness": 0.0064,
+    "cross_ratio": 0.614,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 70
+  },
+  {
+    "node": "이성근",
+    "gap_score": 3.442,
+    "betweenness": 0.007,
+    "cross_ratio": 0.493,
+    "community": "친일",
+    "bridges_comms": 3,
+    "degree": 73
+  },
+  {
+    "node": "3·1운동",
+    "gap_score": 3.417,
+    "betweenness": 0.0077,
+    "cross_ratio": 0.441,
+    "community": "사건",
+    "bridges_comms": 2,
+    "degree": 34
+  },
+  {
+    "node": "윤덕영",
+    "gap_score": 3.026,
+    "betweenness": 0.0051,
+    "cross_ratio": 0.59,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 156
+  },
+  {
+    "node": "송종헌",
+    "gap_score": 2.98,
+    "betweenness": 0.0042,
+    "cross_ratio": 0.714,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 35
+  },
+  {
+    "node": "김윤정",
+    "gap_score": 2.971,
+    "betweenness": 0.0045,
+    "cross_ratio": 0.655,
+    "community": "친일",
+    "bridges_comms": 3,
+    "degree": 58
+  },
+  {
+    "node": "모윤숙",
+    "gap_score": 2.95,
+    "betweenness": 0.0055,
+    "cross_ratio": 0.536,
+    "community": "친일",
+    "bridges_comms": 3,
+    "degree": 56
+  },
+  {
+    "node": "조선은행",
+    "gap_score": 2.65,
+    "betweenness": 0.0054,
+    "cross_ratio": 0.488,
+    "community": "기타",
+    "bridges_comms": 4,
+    "degree": 84
+  },
+  {
+    "node": "이항구",
+    "gap_score": 2.489,
+    "betweenness": 0.0048,
+    "cross_ratio": 0.519,
+    "community": "친일",
+    "bridges_comms": 3,
+    "degree": 52
+  },
+  {
+    "node": "현영섭",
+    "gap_score": 2.389,
+    "betweenness": 0.0075,
+    "cross_ratio": 0.317,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 63
+  },
+  {
+    "node": "만주사변",
+    "gap_score": 2.222,
+    "betweenness": 0.0033,
+    "cross_ratio": 0.683,
+    "community": "사건",
+    "bridges_comms": 4,
+    "degree": 101
+  },
+  {
+    "node": "박영철",
+    "gap_score": 2.193,
+    "betweenness": 0.0041,
+    "cross_ratio": 0.537,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 147
+  },
+  {
+    "node": "한규복",
+    "gap_score": 2.126,
+    "betweenness": 0.0046,
+    "cross_ratio": 0.457,
+    "community": "친일",
+    "bridges_comms": 4,
+    "degree": 129
+  }
+]

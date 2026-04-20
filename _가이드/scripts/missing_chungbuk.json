@@ -1,0 +1,188 @@
+{
+  "손병희": {
+    "sources": [
+      "07-항일학교\\괴산_명덕초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life"
+    ],
+    "hanja": "孫秉熙",
+    "life": "1861~1922",
+    "honor": false
+  },
+  "이갑": {
+    "sources": [
+      "07-항일학교\\괴산_명덕초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life"
+    ],
+    "hanja": "李甲",
+    "life": "1877~1917",
+    "honor": false
+  },
+  "홍명희": {
+    "sources": [
+      "07-항일학교\\괴산_명덕초등학교.md",
+      "07-항일학교\\청주농업고등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life"
+    ],
+    "hanja": "洪命熹",
+    "life": "1888~?",
+    "honor": false
+  },
+  "홍범도": {
+    "sources": [
+      "07-항일학교\\괴산_명덕초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life"
+    ],
+    "hanja": "洪範圖",
+    "life": "1868~1943",
+    "honor": false
+  },
+  "연병룡": {
+    "sources": [
+      "07-항일학교\\괴산_청안초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life",
+      "S3_honor"
+    ],
+    "hanja": "延秉龍",
+    "life": "1892~1919",
+    "honor": true
+  },
+  "장용근": {
+    "sources": [
+      "07-항일학교\\제천_동명초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life",
+      "S3_honor"
+    ],
+    "hanja": "張用根",
+    "life": "1900~?",
+    "honor": true
+  },
+  "황학수": {
+    "sources": [
+      "07-항일학교\\제천_동명초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life",
+      "S3_honor"
+    ],
+    "hanja": "黃學秀",
+    "life": "1877~1953",
+    "honor": true
+  },
+  "김교환": {
+    "sources": [
+      "07-항일학교\\진천_상산초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life",
+      "S3_honor"
+    ],
+    "hanja": "金敎煥",
+    "life": "1883~1955",
+    "honor": true
+  },
+  "변영봉": {
+    "sources": [
+      "07-항일학교\\청주_내수초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life"
+    ],
+    "hanja": "卞榮鳳",
+    "life": "1886~1952",
+    "honor": false
+  },
+  "한봉수": {
+    "sources": [
+      "07-항일학교\\청주_내수초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life",
+      "S3_honor"
+    ],
+    "hanja": "韓鳳洙",
+    "life": "1884~1972",
+    "honor": true
+  },
+  "곽재기": {
+    "sources": [
+      "07-항일학교\\청주_청남초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S3_honor"
+    ],
+    "hanja": "郭在",
+    "life": "",
+    "honor": true
+  },
+  "김태희": {
+    "sources": [
+      "07-항일학교\\청주_청남초등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S3_honor"
+    ],
+    "hanja": "金泰熙",
+    "life": "",
+    "honor": true
+  },
+  "정진섭": {
+    "sources": [
+      "07-항일학교\\청주중고등학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life"
+    ],
+    "hanja": "鄭鎭燮",
+    "life": "1910~?",
+    "honor": false
+  },
+  "김종부": {
+    "sources": [
+      "07-항일학교\\충주_교현초부설_간이농업학교.md"
+    ],
+    "signals": [
+      "S1_section",
+      "S2_life",
+      "S3_honor"
+    ],
+    "hanja": "金鍾富",
+    "life": "1892~?",
+    "honor": true
+  },
+  "청년연맹": {
+    "sources": [
+      "07-항일학교\\충주_교현초부설_간이농업학교.md"
+    ],
+    "signals": [
+      "S3_honor"
+    ],
+    "hanja": "南華韓",
+    "life": "",
+    "honor": true
+  }
+}

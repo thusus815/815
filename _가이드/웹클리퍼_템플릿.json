@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "0.1.0",
+  "name": "항일독립운동 사료 클리퍼",
+  "behavior": "create",
+  "noteNameFormat": "{{date:YYYY-MM-DD}}_{{title|safe_name}}",
+  "folder": "_inbox",
+  "tags": ["inbox"],
+  "properties": [
+    {
+      "name": "status",
+      "value": "미처리",
+      "type": "text"
+    },
+    {
+      "name": "clip_date",
+      "value": "{{date:YYYY-MM-DD}}",
+      "type": "date"
+    },
+    {
+      "name": "clip_url",
+      "value": "{{url}}",
+      "type": "text"
+    },
+    {
+      "name": "clip_title",
+      "value": "{{title}}",
+      "type": "text"
+    },
+    {
+      "name": "submitted_by",
+      "value": "{{prompt:제출자 이름 또는 ID}}",
+      "type": "text"
+    },
+    {
+      "name": "source_type",
+      "value": "{{prompt:사료유형 (공훈전자사료관 / 국가기록원 / 법원판결문 / 학술논문 / 신문기사 / 단행본)}}",
+      "type": "text"
+    },
+    {
+      "name": "source_name",
+      "value": "{{prompt:자료명 (예: 독립유공자 공훈록, 충북 학생 항일 독립투쟁사)}}",
+      "type": "text"
+    },
+    {
+      "name": "source_institution",
+      "value": "{{prompt:발행·소장기관 (예: 국가보훈부, 국가기록원)}}",
+      "type": "text"
+    },
+    {
+      "name": "source_date",
+      "value": "{{prompt:자료 날짜 (예: 1930-03-15 또는 2006)}}",
+      "type": "text"
+    },
+    {
+      "name": "source_doc_id",
+      "value": "{{prompt:문서번호 또는 없음 (예: CJA0000213)}}",
+      "type": "text"
+    },
+    {
+      "name": "source_reliability",
+      "value": "{{prompt:신뢰도 (●●● 원문직접접근 / ●●○ 출처명확 / ●○○ 2차인용)}}",
+      "type": "text"
+    }
+  ],
+  "noteContentFormat": "# {{title}}\n\n> 출처: [{{title}}]({{url}})\n\n---\n\n## 원문 내용\n\n{{content}}\n\n---\n\n## 처리 메모\n\n- 관련 인물:\n- 관련 사건:\n- 관련 지역:\n- 특이사항:\n"
+}

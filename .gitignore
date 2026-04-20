@@ -1,0 +1,78 @@
+# =====================================================
+# 친일반민족행위진상규명 볼트 - GitHub 업로드 제외 목록
+# =====================================================
+
+# ----- 원본 대용량 파일 -----
+# 모든 PDF·HWP·DB·ZIP 사료 원본은 GitHub에서 제외
+# 텍스트는 이미 .md 노트로 추출 완료, 원본은 발행처에 영구 보관
+*.pdf
+*.PDF
+*.hwp
+*.HWP
+*.db
+*.DB
+*.sqlite
+*.sqlite3
+*.zip
+*.ZIP
+*.7z
+*.rar
+*.tar
+*.tar.gz
+00-원자료/DB/
+
+# 단, 개요·메타 문서는 유지
+!00-원자료/원자료_개요.md
+!**/원자료_개요.md
+!**/README.md
+
+# ----- 옵시디언 개인 설정 -----
+.obsidian/workspace*
+.obsidian/cache
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# ----- OS 시스템 파일 -----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ----- 임시·작업 파일 -----
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.~lock.*
+
+# ----- IDE 설정 -----
+.vscode/
+.idea/
+
+# ----- 빌드/캐시 산출물 -----
+node_modules/
+__pycache__/
+*.pyc
+.cache/
+dist/
+build/
+
+# ----- 비밀 정보 -----
+.env
+.env.local
+*.key
+secrets/
+credentials.json
+
+# ----- 너무 큰 첨부파일 (50MB 이상) -----
+# GitHub 무료 계정은 100MB 단일 파일 제한
+# 큰 이미지·동영상은 별도 관리
+*.mp4
+*.avi
+*.mov
+*.iso
+
+# ----- 백업 폴더 -----
+백업/
+backup/
+_archive/
