@@ -320,7 +320,7 @@ async function init() {
 
   // GEXF는 이미 디자인됐으므로 더 관대하게, JSON 폴백은 빡빡하게
   const TOP_NODES  = usedGexf ? 1724 : 120;
-  const TOP_LABELS = usedGexf ? 80 : 40;
+  const TOP_LABELS = usedGexf ? 400 : 80;
   const importantNodes = new Set(degreeRank.slice(0, TOP_NODES).map(x => x[0]));
   const labeledNodes   = new Set(degreeRank.slice(0, TOP_LABELS).map(x => x[0]));
   graph.forEachNode((n, attrs) => {
@@ -334,35 +334,52 @@ async function init() {
     defaultEdgeColor: '#30363d',
     defaultNodeColor: '#888',
     labelColor: { color: '#e6edf3' },
-    labelSize: 11,
-    labelWeight: '500',
-    labelDensity: 0.5,
-    labelGridCellSize: 80,
-    labelRenderedSizeThreshold: 6,
-    minCameraRatio: 0.05,
-    maxCameraRatio: 20,
+    labelSize: 12,
+    labelWeight: '600',
+    labelDensity: 1.2,
+    labelGridCellSize: 55,
+    labelRenderedSizeThreshold: 2,
+    minCameraRatio: 0.02,
+    maxCameraRatio: 30,
+    enableEdgeEvents: false,
+    allowInvalidContainer: true,
     nodeReducer: (node, data) => {
+      const hovered = window.__getHovered && window.__getHovered();
       // 부분그래프 모드 우선
       if (focusMode) {
         if (!visibleNodes.has(node)) return { ...data, hidden: true };
-        return { ...data, label: data.label };
+        return data;
       }
-      // 일반 모드: 핵심 노드만 보이고, 라벨은 더 적게
+      // hover 시: hover 노드 + 직접 이웃은 라벨 강제 표시·확대
+      if (hovered) {
+        if (node === hovered) {
+          return { ...data, highlighted: true, zIndex: 10, size: (data.size || 3) * 1.5 };
+        }
+        if (graph.areNeighbors(hovered, node)) {
+          return { ...data, zIndex: 5, label: data.label || String(node) };
+        }
+      }
       if (!data.isImportant) return { ...data, hidden: true };
       if (!data.isLabeled)   return { ...data, label: '' };
       return data;
     },
     edgeReducer: (edge, data) => {
       const [s, t] = graph.extremities(edge);
+      const hovered = window.__getHovered && window.__getHovered();
       if (focusMode) {
         if (!visibleNodes.has(s) || !visibleNodes.has(t)) return { ...data, hidden: true };
         return data;
       }
-      // 일반 모드: 양 끝이 핵심 노드일 때만 표시
+      // hover 시: hover 노드에 닿는 엣지만 강조, 나머지는 흐리게
+      if (hovered) {
+        if (s === hovered || t === hovered) {
+          return { ...data, color: '#58a6ff', size: Math.max(data.size || 0.5, 1.5), zIndex: 8 };
+        }
+        return { ...data, hidden: true };
+      }
       const sImp = graph.getNodeAttribute(s, 'isImportant');
       const tImp = graph.getNodeAttribute(t, 'isImportant');
       if (!sImp || !tImp) return { ...data, hidden: true };
-      // 약한 단방향 엣지는 더 흐리게
       if (data.direction !== 'mutual' && data.weight <= 1) {
         return { ...data, color: '#1f2937', size: 0.3 };
       }
@@ -393,6 +410,22 @@ async function init() {
   sigmaInstance.on('clickStage', () => {
     document.getElementById('info').style.display = 'none';
   });
+
+  // Hover — 라벨 강제 표시 + 커서 포인터
+  let hovered = null;
+  sigmaInstance.on('enterNode', ({ node }) => {
+    hovered = node;
+    document.body.style.cursor = 'pointer';
+    // 해당 노드와 이웃 라벨 강조
+    sigmaInstance.refresh();
+  });
+  sigmaInstance.on('leaveNode', () => {
+    hovered = null;
+    document.body.style.cursor = 'default';
+    sigmaInstance.refresh();
+  });
+  // reducer에서 hovered 참조용
+  window.__getHovered = () => hovered;
 
   // 줌인할수록 더 많은 노드·라벨 점진 표시
   let lastRatio = 1;

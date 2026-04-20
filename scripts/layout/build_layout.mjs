@@ -86,7 +86,7 @@ g.forEachNode((n) => {
   const color = (c === OTHER) ? "#cccccc" : palette[Math.abs(c) % palette.length];
   g.setNodeAttribute(n, "color", color);
   const deg = g.degree(n);
-  g.setNodeAttribute(n, "size", Math.max(3, Math.min(30, Math.log2(1 + deg) * 4)));
+  g.setNodeAttribute(n, "size", Math.max(1.5, Math.min(12, Math.log2(1 + deg) * 1.8)));
   g.setNodeAttribute(n, "x", (Math.random() - 0.5) * 1000);
   g.setNodeAttribute(n, "y", (Math.random() - 0.5) * 1000);
 });
