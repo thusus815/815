@@ -35,9 +35,23 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install Quartz dependencies
         run: npm ci
         working-directory: quartz
+
+      - name: Rebuild knowledge graph (graph_data.json)
+        run: |
+          if [ -f vault/scripts/build_graph.py ]; then
+            python vault/scripts/build_graph.py --vault vault --out vault/graph_data.json
+            echo "Graph rebuilt successfully"
+          else
+            echo "build_graph.py not found, skipping"
+          fi
 
       - name: Copy vault content to Quartz
         run: |

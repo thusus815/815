@@ -249,24 +249,57 @@ async function init() {
   document.getElementById('stat-edges').textContent =
     `엣지 ${data.edges.length} (양방향 ${mutualEdges})`;
 
-  // Sigma 렌더링 — reducer로 hidden 처리
+  // 가독성: degree 기반 핵심 노드 선별
+  const degreeRank = [];
+  graph.forEachNode(n => degreeRank.push([n, graph.degree(n)]));
+  degreeRank.sort((a, b) => b[1] - a[1]);
+
+  const TOP_NODES = 120;       // 첫 화면 표시 노드 수
+  const TOP_LABELS = 40;       // 라벨 표시 수
+  const importantNodes = new Set(degreeRank.slice(0, TOP_NODES).map(x => x[0]));
+  const labeledNodes   = new Set(degreeRank.slice(0, TOP_LABELS).map(x => x[0]));
+  graph.forEachNode((n, attrs) => {
+    graph.setNodeAttribute(n, 'isImportant', importantNodes.has(n));
+    graph.setNodeAttribute(n, 'isLabeled', labeledNodes.has(n));
+  });
+
+  // Sigma 렌더링 — reducer로 동적 가독성 + 부분그래프 모드
   sigmaInstance = new Sigma(graph, document.getElementById('container'), {
     renderEdgeLabels: false,
     defaultEdgeColor: '#30363d',
     defaultNodeColor: '#888',
     labelColor: { color: '#e6edf3' },
-    labelSize: 10,
-    labelWeight: '400',
+    labelSize: 11,
+    labelWeight: '500',
+    labelDensity: 0.5,
+    labelGridCellSize: 80,
+    labelRenderedSizeThreshold: 6,
     minCameraRatio: 0.05,
     maxCameraRatio: 20,
     nodeReducer: (node, data) => {
-      if (focusMode && !visibleNodes.has(node)) return { ...data, hidden: true };
+      // 부분그래프 모드 우선
+      if (focusMode) {
+        if (!visibleNodes.has(node)) return { ...data, hidden: true };
+        return { ...data, label: data.label };
+      }
+      // 일반 모드: 핵심 노드만 보이고, 라벨은 더 적게
+      if (!data.isImportant) return { ...data, hidden: true };
+      if (!data.isLabeled)   return { ...data, label: '' };
       return data;
     },
     edgeReducer: (edge, data) => {
       const [s, t] = graph.extremities(edge);
-      if (focusMode && (!visibleNodes.has(s) || !visibleNodes.has(t))) {
-        return { ...data, hidden: true };
+      if (focusMode) {
+        if (!visibleNodes.has(s) || !visibleNodes.has(t)) return { ...data, hidden: true };
+        return data;
+      }
+      // 일반 모드: 양 끝이 핵심 노드일 때만 표시
+      const sImp = graph.getNodeAttribute(s, 'isImportant');
+      const tImp = graph.getNodeAttribute(t, 'isImportant');
+      if (!sImp || !tImp) return { ...data, hidden: true };
+      // 약한 단방향 엣지는 더 흐리게
+      if (data.direction !== 'mutual' && data.weight <= 1) {
+        return { ...data, color: '#1f2937', size: 0.3 };
       }
       return data;
     },
@@ -290,6 +323,25 @@ async function init() {
   // 빈 곳 클릭 시는 정보 패널만 닫음 (그래프는 유지)
   sigmaInstance.on('clickStage', () => {
     document.getElementById('info').style.display = 'none';
+  });
+
+  // 줌인할수록 더 많은 노드·라벨 점진 표시
+  let lastRatio = 1;
+  sigmaInstance.getCamera().on('updated', () => {
+    const ratio = sigmaInstance.getCamera().ratio;
+    if (Math.abs(ratio - lastRatio) < 0.05) return;
+    lastRatio = ratio;
+    // ratio가 작을수록 줌인 → 더 많이 표시
+    const showAll = ratio < 0.3;
+    const labelMore = ratio < 0.6;
+    if (focusMode) return;
+    graph.forEachNode((n, attrs) => {
+      const newImp = showAll ? true : attrs.isImportant;
+      const newLab = labelMore ? attrs.isImportant : attrs.isLabeled;
+      graph.setNodeAttribute(n, 'isImportant', newImp);
+      graph.setNodeAttribute(n, 'isLabeled', newLab);
+    });
+    sigmaInstance.refresh();
   });
 }
 
