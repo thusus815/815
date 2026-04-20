@@ -1,0 +1,21 @@
+name = "815-chat"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers AI 바인딩 (무료 한도 있음)
+[ai]
+binding = "AI"
+
+# 그래프 관계 캐시용 KV (선택)
+# [[kv_namespaces]]
+# binding = "RELATIONS"
+# id = "<생성 후 입력>"
+
+[vars]
+SITE_ORIGIN = "https://thusus815.github.io"
+GRAPH_DATA_URL = "https://thusus815.github.io/815/graph_data.json"
+RELATIONS_URL = "https://thusus815.github.io/815/graph_relations.json"
+
+# 배포: cd worker && npx wrangler deploy
+# 개발: cd worker && npx wrangler dev

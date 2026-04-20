@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "0.1.0",
+  "name": "815 아카이브 제출",
+  "behavior": "create",
+  "noteContentFormat": "{{content}}",
+  "properties": [
+    {
+      "name": "title",
+      "value": "{{title}}",
+      "type": "text"
+    },
+    {
+      "name": "tags",
+      "value": "인물, 항일",
+      "type": "multitext"
+    },
+    {
+      "name": "source_type",
+      "value": "신문기사",
+      "type": "text"
+    },
+    {
+      "name": "source_name",
+      "value": "{{title}}",
+      "type": "text"
+    },
+    {
+      "name": "source_institution",
+      "value": "{{domain}}",
+      "type": "text"
+    },
+    {
+      "name": "source_url",
+      "value": "{{url}}",
+      "type": "text"
+    },
+    {
+      "name": "source_date",
+      "value": "{{date}}",
+      "type": "date"
+    },
+    {
+      "name": "source_reliability",
+      "value": "●●○",
+      "type": "text"
+    },
+    {
+      "name": "submitted_by",
+      "value": "당신의이름",
+      "type": "text"
+    },
+    {
+      "name": "submitted_at",
+      "value": "{{date}}",
+      "type": "date"
+    }
+  ],
+  "triggers": [],
+  "noteNameFormat": "{{date|date:'YYYYMMDD'}}_{{title|safeName}}",
+  "path": "_inbox/대기",
+  "context": ""
+}

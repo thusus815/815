@@ -1,0 +1,84 @@
+name: LLM Semantic Labeling
+
+# 수동 실행 또는 매주 일요일 새벽 자동 실행
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'LLM provider (github / openai / gemini / cloudflare / mock)'
+        required: true
+        default: 'github'
+      limit:
+        description: '최대 처리 노트 수 (0=무제한)'
+        required: false
+        default: '0'
+      force:
+        description: '캐시 무시하고 전체 재라벨링'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # 매주 일요일 03:00 UTC (한국 12:00)
+    - cron: '0 3 * * 0'
+
+permissions:
+  contents: write
+  models: read
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run LLM labeler
+        env:
+          GITHUB_TOKEN:    ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+          CF_API_TOKEN:    ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID:   ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          PROVIDER="${{ github.event.inputs.provider || 'github' }}"
+          LIMIT="${{ github.event.inputs.limit || '0' }}"
+          FORCE_FLAG=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            FORCE_FLAG="--force"
+          fi
+          python scripts/llm_labeler.py \
+            --provider "$PROVIDER" \
+            --limit "$LIMIT" \
+            $FORCE_FLAG
+
+      - name: Show stats
+        if: always()
+        run: |
+          if [ -f graph_relations.json ]; then
+            python -c "
+          import json
+          d = json.load(open('graph_relations.json', encoding='utf-8'))
+          s = d.get('stats', {})
+          print('## LLM 라벨링 결과' )
+          print(f\"- Provider: {d.get('provider')}\")
+          print(f\"- 처리: {s.get('processed', 0)}개 노트\")
+          print(f\"- 캐시 스킵: {s.get('skipped_cache', 0)}\")
+          print(f\"- 실패: {s.get('failed', 0)}\")
+          print(f\"- 관계: {s.get('relations', 0)}개 트리플\")
+          " >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit results
+        run: |
+          if [ -n "$(git status --porcelain graph_relations.json scripts/.label_cache.json)" ]; then
+            git config user.name "labeler-bot"
+            git config user.email "labeler@thusus815.local"
+            git add graph_relations.json scripts/.label_cache.json
+            git commit -m "Update LLM relations [skip ci]"
+            git push origin main
+          fi
