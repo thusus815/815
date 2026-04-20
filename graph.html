@@ -5,21 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>815 독립운동 아카이브 — 지식 그래프</title>
 <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-library@0.7.1/dist/graphology-library.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sigma@3/dist/sigma.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/worker.min.js"></script>
-<script>
-  // 라이브러리 노출 호환 (UMD 빌드별 케이스 대비)
-  window.addEventListener('DOMContentLoaded', () => {
-    if (typeof Sigma === 'undefined' && typeof sigma !== 'undefined') {
-      window.Sigma = sigma.Sigma || sigma.default || sigma;
-    }
-    if (typeof FA2Layout === 'undefined' && typeof graphologyLayoutForceAtlas2 !== 'undefined') {
-      window.FA2Layout = graphologyLayoutForceAtlas2.FA2LayoutSupervisor
-                     || graphologyLayoutForceAtlas2.FA2Layout
-                     || graphologyLayoutForceAtlas2.default;
-    }
-  });
-</script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#0d1117; color:#e6edf3; font-family:'Noto Sans KR',sans-serif; overflow:hidden; }
@@ -285,7 +272,13 @@ async function init() {
     },
   });
 
-  runLayout();
+  // UI 먼저 보여주고 레이아웃은 다음 틱에 (블로킹 방지)
+  document.getElementById('loading').querySelector('div:last-child').textContent =
+    '레이아웃 계산 중... (5~10초)';
+  setTimeout(() => {
+    runLayout();
+    document.getElementById('loading').style.display = 'none';
+  }, 50);
 
   // 클릭 → 부분 그래프 모드 진입
   sigmaInstance.on('clickNode', ({ node }) => {
@@ -298,21 +291,31 @@ async function init() {
   sigmaInstance.on('clickStage', () => {
     document.getElementById('info').style.display = 'none';
   });
-
-  document.getElementById('loading').style.display = 'none';
 }
 
 function runLayout() {
-  const fa2 = new FA2Layout(graph, {
+  // graphology-library에 포함된 ForceAtlas2 정적 레이아웃 사용
+  const fa2 = graphologyLibrary.layoutForceAtlas2;
+  if (!fa2 || typeof fa2.assign !== 'function') {
+    console.warn('layoutForceAtlas2를 찾을 수 없습니다. 랜덤 위치 유지.');
+    return;
+  }
+
+  // 1700+ 노드 → 적당한 반복 횟수
+  const settings = fa2.inferSettings ? fa2.inferSettings(graph) : {};
+  fa2.assign(graph, {
+    iterations: 200,
     settings: {
+      ...settings,
       gravity: 1,
-      scalingRatio: 10,
+      scalingRatio: 8,
       strongGravityMode: false,
       barnesHutOptimize: true,
+      slowDown: 5,
     }
   });
-  fa2.start();
-  setTimeout(() => fa2.stop(), 8000);
+
+  if (sigmaInstance) sigmaInstance.refresh();
 }
 
 // N단계 이웃까지 BFS로 수집
