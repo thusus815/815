@@ -19,7 +19,23 @@ _args, _ = _parser.parse_known_args()
 VAULT = _args.vault
 OUT   = _args.out or os.path.join(VAULT, "graph_data.json")
 
-EXCLUDE = {"00-원자료", "_inbox", "99-attachments", "08-스냅샷", ".obsidian", ".git", ".github"}
+EXCLUDE = {
+    "00-원자료", "_inbox", "99-attachments", "08-스냅샷",
+    ".obsidian", ".git", ".github",
+    "scripts", "templates", "worker", "node_modules",
+}
+
+# 그래프에서 제외할 메타 문서 파일명 패턴 (운영자 가이드, README 등)
+EXCLUDE_FILE_PATTERNS = [
+    re.compile(r"^README", re.IGNORECASE),
+    re.compile(r"가이드"),
+    re.compile(r"GUIDE", re.IGNORECASE),
+    re.compile(r"^00_입력_템플릿"),
+    re.compile(r"^_"),                         # _로 시작하는 임시·메타 파일
+    re.compile(r"GEPHI", re.IGNORECASE),
+    re.compile(r"design"),
+    re.compile(r"방법$"),                      # "...하는 방법"
+]
 
 TAG_COLOR = {
     "친일인물":   "#FF6B35",
@@ -102,12 +118,18 @@ def slug(path):
 # ===== 1. 파일 스캔 =====
 print("[1/4] .md 파일 스캔 중...")
 md_files = []
+skipped_meta = []
 for root, dirs, files in os.walk(VAULT):
     dirs[:] = [d for d in dirs if d not in EXCLUDE]
     for f in files:
-        if f.endswith(".md"):
-            md_files.append(os.path.join(root, f))
-print(f"  총 {len(md_files)}개 파일")
+        if not f.endswith(".md"):
+            continue
+        base = f[:-3]
+        if any(p.search(base) for p in EXCLUDE_FILE_PATTERNS):
+            skipped_meta.append(f)
+            continue
+        md_files.append(os.path.join(root, f))
+print(f"  총 {len(md_files)}개 파일 (메타 문서 {len(skipped_meta)}개 제외)")
 
 # ===== 2. 노드 구축 =====
 nodes = {}              # slug → {id, label, color, size, tags, category}
