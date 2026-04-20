@@ -69,14 +69,49 @@ async function loadGraph(env: Env) {
   return { graph: cachedGraph!, relations: cachedRelations! };
 }
 
+// 한국어 별칭 → 검색 보강 토큰 매핑
+const KO_ALIASES: Record<string, string[]> = {
+  "청주농고":    ["청주농업고", "청주공립농업"],
+  "청주농업고":  ["청주농고", "청주공립농업"],
+  "청남":        ["청남학교", "청주청남"],
+  "영명":        ["영명학교", "공주영명"],
+  "내수":        ["내수초", "내수공립"],
+  "3·1":         ["3·1운동", "만세운동", "1919"],
+  "신사참배":    ["신사참배거부", "신사참배_거부"],
+  "맹휴":        ["동맹휴학", "맹휴투쟁"],
+  "광주학생운동":["광주학생", "광주_학생"],
+  "의열단":      ["의열단_1920", "김원봉"],
+  "박순길":      ["청주농업고", "1930", "맹휴"],
+};
+
+function expandTokens(tokens: string[]): string[] {
+  const expanded = new Set(tokens);
+  for (const t of tokens) {
+    const aliases = KO_ALIASES[t];
+    if (aliases) aliases.forEach(a => expanded.add(a));
+    // 부분 매칭: 사전 키가 토큰을 포함하거나 토큰이 키를 포함할 때
+    for (const [key, vals] of Object.entries(KO_ALIASES)) {
+      if (t.includes(key) || key.includes(t)) vals.forEach(a => expanded.add(a));
+    }
+  }
+  return Array.from(expanded);
+}
+
 function findRelevantNodes(question: string, graph: { nodes: GraphNode[]; edges: GraphEdge[] }, topK = 8) {
   const q = question.toLowerCase();
-  const tokens = q.split(/[\s,.\?!:;()]+/).filter(t => t.length >= 2);
+  const rawTokens = q.split(/[\s,.\?!:;()\+·]+/).filter(t => t.length >= 2);
+  const tokens = expandTokens(rawTokens);
+
   const scored = graph.nodes.map(n => {
     let score = 0;
     const label = n.label.toLowerCase();
-    for (const t of tokens) if (label.includes(t)) score += 3;
+    for (const t of tokens) {
+      if (label.includes(t)) score += (rawTokens.includes(t) ? 4 : 2); // 원본 토큰이면 가중치 높게
+    }
     if (label === q) score += 10;
+    // 연도 직접 매칭
+    const yearMatch = q.match(/\d{4}/g);
+    if (yearMatch) for (const yr of yearMatch) if (label.includes(yr)) score += 3;
     return { node: n, score };
   }).filter(x => x.score > 0)
     .sort((a, b) => b.score - a.score)
