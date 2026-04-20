@@ -45,7 +45,11 @@ jobs:
           cp -r vault quartz/content
 
       - name: Copy Quartz config
-        run: cp vault/quartz.config.ts quartz/quartz.config.ts
+        run: |
+          cp vault/quartz.config.ts quartz/quartz.config.ts
+          if [ -f vault/quartz.layout.ts ]; then
+            cp vault/quartz.layout.ts quartz/quartz.layout.ts
+          fi
         continue-on-error: true
 
       - name: Build
