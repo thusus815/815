@@ -138,12 +138,40 @@
     <div class="legend-item" data-filter="학교">
       <div class="legend-dot" style="background:#E57373"></div> 학교
     </div>
-    <div class="legend-item" data-filter="all" style="margin-top:4px;">
-      <div class="legend-dot" style="background:#888"></div> 전체 보기
-    </div>
-  </div>
+        <div class="legend-item" data-filter="all" style="margin-top:4px;">
+          <div class="legend-dot" style="background:#888"></div> 전체 보기
+        </div>
+      </div>
 
-  <div id="info"></div>
+      <div style="font-size:11px;color:#8b949e;margin-top:8px;border-top:1px solid #30363d;padding-top:8px;">엣지 분류</div>
+      <div class="legend">
+        <div class="legend-item" style="cursor:default">
+          <div style="width:24px;height:2px;background:#FFD700"></div>
+          <span>양방향 상호참조 <span style="color:#8b949e">(강한 관계)</span></span>
+        </div>
+        <div class="legend-item" style="cursor:default">
+          <div style="width:24px;height:2px;background:#7BC67E"></div>
+          <span>인물 ↔ 사건</span>
+        </div>
+        <div class="legend-item" style="cursor:default">
+          <div style="width:24px;height:2px;background:#B07CC6"></div>
+          <span>인물 ↔ 단체</span>
+        </div>
+        <div class="legend-item" style="cursor:default">
+          <div style="width:24px;height:2px;background:#F5C842"></div>
+          <span>인물 ↔ 지역</span>
+        </div>
+        <div class="legend-item" style="cursor:default">
+          <div style="width:24px;height:2px;background:#FF4444"></div>
+          <span>친일 ↔ 항일 <span style="color:#8b949e">(대립)</span></span>
+        </div>
+        <div class="legend-item" style="cursor:default">
+          <div style="width:24px;height:2px;background:#3a4452"></div>
+          <span>일반 단방향</span>
+        </div>
+      </div>
+
+      <div id="info"></div>
 </div>
 
 <div id="container"></div>
@@ -199,14 +227,27 @@ async function init() {
     });
   });
 
-  // 엣지 추가
+  // 엣지 추가 — 방향성/가중치/관계타입 메타 보존
+  let mutualEdges = 0, fwdEdges = 0;
   data.edges.forEach(e => {
     try {
       if (graph.hasNode(e.source) && graph.hasNode(e.target) && !graph.hasEdge(e.source, e.target)) {
-        graph.addEdge(e.source, e.target, { size: 0.5, color: '#30363d' });
+        graph.addEdge(e.source, e.target, {
+          size: e.size || 0.5,
+          color: e.color || '#30363d',
+          origColor: e.color || '#30363d',
+          weight: e.weight || 1,
+          direction: e.direction || 'forward',
+          relType: e.relType || '',
+          type: e.type || 'line',
+        });
+        if (e.direction === 'mutual') mutualEdges++; else fwdEdges++;
       }
     } catch(_) {}
   });
+
+  document.getElementById('stat-edges').textContent =
+    `엣지 ${data.edges.length} (양방향 ${mutualEdges})`;
 
   // Sigma 렌더링 — reducer로 hidden 처리
   sigmaInstance = new Sigma(graph, document.getElementById('container'), {
@@ -330,8 +371,8 @@ function resetColors() {
   graph.forEachNode((n, attrs) => {
     graph.setNodeAttribute(n, 'color', attrs.origColor);
   });
-  graph.forEachEdge(e => {
-    graph.setEdgeAttribute(e, 'color', '#30363d');
+  graph.forEachEdge((e, attrs) => {
+    graph.setEdgeAttribute(e, 'color', attrs.origColor || '#30363d');
   });
 }
 
@@ -339,12 +380,36 @@ function showInfo(nodeId, attrs) {
   const panel = document.getElementById('info');
   const slug = nodeId;
   const url  = '/' + slug;
+
+  // 엣지 통계 계산
+  let mutual = 0, oneway = 0, oppositeRel = 0;
+  const relCounts = {};
+  graph.forEachEdge(nodeId, (e, eAttrs, src, tgt) => {
+    if (eAttrs.direction === 'mutual') mutual++; else oneway++;
+    if (eAttrs.relType && eAttrs.relType.includes('친일인물') && eAttrs.relType.includes('항일인물')) {
+      oppositeRel++;
+    }
+    relCounts[eAttrs.relType] = (relCounts[eAttrs.relType] || 0) + 1;
+  });
+
+  const topRels = Object.entries(relCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k, v]) => `${k} (${v})`)
+    .join(', ');
+
   panel.style.display = 'block';
   panel.innerHTML = `
     <h3>${attrs.label}</h3>
-    <div style="color:#8b949e;margin-bottom:8px;">
-      연결: ${graph.degree(nodeId)}개 노드
+    <div style="color:#8b949e;margin-bottom:6px;">
+      총 연결: <b style="color:#e6edf3">${graph.degree(nodeId)}</b>개
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;font-size:11px;">
+      <span style="color:#FFD700">🟡 양방향 ${mutual}</span>
+      <span style="color:#8b949e">⬜ 단방향 ${oneway}</span>
+      ${oppositeRel ? `<span style="color:#FF4444">⚔ 대립 ${oppositeRel}</span>` : ''}
+    </div>
+    ${topRels ? `<div style="font-size:10px;color:#8b949e;margin-bottom:8px;">주요 관계: ${topRels}</div>` : ''}
     ${attrs.tags.length ? `<div style="margin-bottom:8px;">${attrs.tags.slice(0,5).map(t => `<span style="background:#21262d;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:4px;">${t}</span>`).join('')}</div>` : ''}
     <a href="${url}" target="_blank">→ 노트 열기</a>
   `;
