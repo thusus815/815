@@ -370,10 +370,10 @@ async function init() {
         if (!visibleNodes.has(s) || !visibleNodes.has(t)) return { ...data, hidden: true };
         return data;
       }
-      // hover 시: hover 노드에 닿는 엣지만 강조, 나머지는 흐리게
+      // hover 시: hover 노드에 닿는 엣지만 두껍게(본래 의미 색 유지), 나머지는 숨김
       if (hovered) {
         if (s === hovered || t === hovered) {
-          return { ...data, color: '#58a6ff', size: Math.max(data.size || 0.5, 1.5), zIndex: 8 };
+          return { ...data, size: Math.max((data.size || 0.5) * 2.5, 2), zIndex: 8 };
         }
         return { ...data, hidden: true };
       }
