@@ -64,6 +64,17 @@ build/
 secrets/
 credentials.json
 
+# ----- Cloudflare Worker -----
+worker/node_modules/
+worker/dist/
+worker/.wrangler/
+worker/package-lock.json
+
+# ----- LLM 라벨링 산출물 (워크플로우가 갱신) -----
+# graph_relations.json은 워크플로우가 매번 새로 푸시하므로 추적 OK
+# label cache는 GH Actions에서만 갱신
+
+
 # ----- 너무 큰 첨부파일 (50MB 이상) -----
 # GitHub 무료 계정은 100MB 단일 파일 제한
 # 큰 이미지·동영상은 별도 관리

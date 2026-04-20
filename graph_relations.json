@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-04-20T23:50:07.134865",
+  "provider": "mock",
+  "stats": {
+    "total_notes": 1720,
+    "processed": 5,
+    "skipped_cache": 1,
+    "failed": 0,
+    "relations": 5
+  },
+  "relations": [
+    {
+      "subject": "예시인물A",
+      "predicate": "동지",
+      "object": "예시인물B",
+      "confidence": 0.85,
+      "source_note": "AGENTS",
+      "from_cache": false
+    },
+    {
+      "subject": "예시인물A",
+      "predicate": "동지",
+      "object": "예시인물B",
+      "confidence": 0.85,
+      "source_note": "GEPHI_가이드",
+      "from_cache": false
+    },
+    {
+      "subject": "예시인물A",
+      "predicate": "동지",
+      "object": "예시인물B",
+      "confidence": 0.85,
+      "source_note": "index",
+      "from_cache": false
+    },
+    {
+      "subject": "예시인물A",
+      "predicate": "동지",
+      "object": "예시인물B",
+      "confidence": 0.85,
+      "source_note": "START",
+      "from_cache": false
+    },
+    {
+      "subject": "예시인물A",
+      "predicate": "동지",
+      "object": "예시인물B",
+      "confidence": 0.85,
+      "source_note": "충북_독립운동_흐름_인덱스",
+      "from_cache": false
+    }
+  ]
+}

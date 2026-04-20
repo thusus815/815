@@ -1,0 +1,67 @@
+{
+  "2026-04-18": {
+    "hash": "caafffff6731f28c15785fe8d282b15d6a441f2e5643fbddf4e6b8fd6b20c75d",
+    "relations": [],
+    "ts": "2026-04-20T23:50:07.131867"
+  },
+  "AGENTS": {
+    "hash": "ce4b187d63135c9739e352f0a4f7dfb7a7b6fe7eb3d9231d2244601f37434750",
+    "relations": [
+      {
+        "subject": "예시인물A",
+        "predicate": "동지",
+        "object": "예시인물B",
+        "confidence": 0.85
+      }
+    ],
+    "ts": "2026-04-20T23:50:07.131867"
+  },
+  "GEPHI_가이드": {
+    "hash": "b6aa3da8e4ebb98235d58a03ed08d93b24d80a526b0e59155e5140ca41f8184e",
+    "relations": [
+      {
+        "subject": "예시인물A",
+        "predicate": "동지",
+        "object": "예시인물B",
+        "confidence": 0.85
+      }
+    ],
+    "ts": "2026-04-20T23:50:07.132868"
+  },
+  "index": {
+    "hash": "372250e76af45c0262df399c984d2b0b84721ba55d2b046d614983e07847ecdc",
+    "relations": [
+      {
+        "subject": "예시인물A",
+        "predicate": "동지",
+        "object": "예시인물B",
+        "confidence": 0.85
+      }
+    ],
+    "ts": "2026-04-20T23:50:07.132868"
+  },
+  "START": {
+    "hash": "ffd2053ed372c5ca68811b0d8100c4171306deca266dd467845c1d2e9a760708",
+    "relations": [
+      {
+        "subject": "예시인물A",
+        "predicate": "동지",
+        "object": "예시인물B",
+        "confidence": 0.85
+      }
+    ],
+    "ts": "2026-04-20T23:50:07.132868"
+  },
+  "충북_독립운동_흐름_인덱스": {
+    "hash": "cb1659655dccf3ddea9ce0bc0a8d1f07cc2191deb916d5dbc41324833f6f74ba",
+    "relations": [
+      {
+        "subject": "예시인물A",
+        "predicate": "동지",
+        "object": "예시인물B",
+        "confidence": 0.85
+      }
+    ],
+    "ts": "2026-04-20T23:50:07.133865"
+  }
+}
