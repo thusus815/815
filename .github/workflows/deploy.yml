@@ -101,6 +101,14 @@ jobs:
           if [ -f vault/chat.html ]; then
             cp vault/chat.html quartz/public/chat.html
           fi
+          # 자료 제출 UI
+          if [ -f vault/submit.html ]; then
+            cp vault/submit.html quartz/public/submit.html
+          fi
+          # 박순길 초상
+          if [ -f vault/park_sungil_portrait.jpg ]; then
+            cp vault/park_sungil_portrait.jpg quartz/public/park_sungil_portrait.jpg
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

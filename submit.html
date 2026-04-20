@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>자료 제출 — 815 아카이브</title>
+<style>
+:root {
+  --bg:     #0d1117;
+  --sur:    #161b22;
+  --sur2:   #21262d;
+  --bd:     #30363d;
+  --txt:    #e6edf3;
+  --muted:  #8b949e;
+  --accent: #58a6ff;
+  --gold:   #d4a847;
+  --green:  #3fb950;
+  --danger: #f85149;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: 'Noto Sans KR', 'Malgun Gothic', -apple-system, sans-serif;
+  line-height: 1.7;
+  min-height: 100dvh;
+}
+a { text-decoration: none; color: inherit; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 54px;
+  background: rgba(13,17,23,0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center;
+  padding: 0 32px; gap: 8px;
+}
+.nav-logo { font-size: 18px; font-weight: 800; margin-right: auto; letter-spacing: -0.5px; }
+.nav-logo b { color: var(--accent); font-weight: inherit; }
+nav a { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: 6px; transition: color 0.15s; }
+nav a:hover { color: var(--txt); }
+nav a.nav-cta { background: var(--accent); color: #fff; font-weight: 600; }
+
+/* LAYOUT */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 100px 24px 80px;
+}
+.page-header { margin-bottom: 48px; }
+.page-eyebrow {
+  font-size: 11px; letter-spacing: 2.5px; font-weight: 600;
+  color: var(--gold); text-transform: uppercase; margin-bottom: 14px;
+}
+.page-header h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 900; letter-spacing: -1.5px; line-height: 1.15;
+  margin-bottom: 14px;
+}
+.page-header p {
+  font-size: 15px; color: var(--muted); line-height: 1.75; max-width: 520px;
+}
+
+/* STEPS */
+.steps {
+  display: flex; gap: 0; margin-bottom: 40px;
+  border: 1px solid var(--bd); border-radius: 10px;
+  overflow: hidden;
+}
+.step {
+  flex: 1; padding: 14px 18px; font-size: 12px;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--muted); background: var(--sur);
+  border-right: 1px solid var(--bd);
+}
+.step:last-child { border-right: none; }
+.step.active { color: var(--txt); background: var(--sur2); }
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bd); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.step.active .step-num { background: var(--accent); color: #fff; }
+.step.done .step-num { background: var(--green); color: #fff; }
+
+/* CARD */
+.card {
+  background: var(--sur); border: 1px solid var(--bd);
+  border-radius: 12px; padding: 32px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 15px; font-weight: 700; margin-bottom: 4px;
+}
+.card-desc { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+/* DROP ZONE */
+.drop-zone {
+  border: 2px dashed var(--bd);
+  border-radius: 10px; padding: 48px 24px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--accent);
+  background: rgba(88,166,255,0.04);
+}
+.drop-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+.drop-text { font-size: 14px; color: var(--muted); }
+.drop-text b { color: var(--txt); }
+.drop-hint { font-size: 12px; color: #444d56; margin-top: 6px; }
+.drop-input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+}
+
+/* FILE LIST */
+.file-list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.file-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--sur2); border: 1px solid var(--bd);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 13px;
+}
+.file-icon { font-size: 18px; flex-shrink: 0; }
+.file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+.file-remove {
+  background: none; border: none; color: var(--danger);
+  cursor: pointer; font-size: 16px; padding: 0 4px; flex-shrink: 0;
+  opacity: 0.6; transition: opacity 0.15s;
+}
+.file-remove:hover { opacity: 1; }
+
+/* FORM */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 13px; font-weight: 600; color: var(--muted); }
+label .req { color: var(--danger); margin-left: 2px; }
+input, select, textarea {
+  background: var(--sur2); border: 1px solid var(--bd);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 14px; color: var(--txt); font-family: inherit;
+  transition: border-color 0.15s; width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+textarea { resize: vertical; min-height: 90px; }
+select option { background: var(--sur2); }
+
+/* NOTICE */
+.notice {
+  background: rgba(88,166,255,0.06);
+  border: 1px solid rgba(88,166,255,0.2);
+  border-radius: 10px; padding: 16px 20px;
+  font-size: 13px; color: var(--muted); line-height: 1.7;
+  margin-bottom: 20px;
+}
+.notice b { color: var(--txt); }
+
+/* BUTTONS */
+.btn-row { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+.btn-main {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff;
+  padding: 12px 24px; border-radius: 8px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  border: none; font-family: inherit; transition: opacity 0.15s;
+}
+.btn-main:hover { opacity: 0.85; }
+.btn-main:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-sub {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; color: var(--txt);
+  border: 1px solid var(--bd);
+  padding: 12px 24px; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: border-color 0.15s; text-decoration: none;
+}
+.btn-sub:hover { border-color: var(--accent); }
+
+/* RESULT */
+#result-section { display: none; }
+.result-card {
+  background: rgba(63,185,80,0.07);
+  border: 1px solid rgba(63,185,80,0.25);
+  border-radius: 12px; padding: 32px;
+  text-align: center;
+}
+.result-icon { font-size: 48px; margin-bottom: 16px; }
+.result-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.result-card p { font-size: 14px; color: var(--muted); max-width: 440px; margin: 0 auto 24px; line-height: 1.75; }
+
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .steps { flex-direction: column; }
+  .step { border-right: none; border-bottom: 1px solid var(--bd); }
+  .step:last-child { border-bottom: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><a href="index.html"><b>815</b> 아카이브</a></div>
+  <a href="index.html#events">지역 사건</a>
+  <a href="01-인물">위키 아카이브</a>
+  <a href="chat.html" class="nav-cta">대화하기</a>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div class="page-eyebrow">자료 제출</div>
+    <h1>발굴한 역사 자료를<br>함께 아카이브합니다</h1>
+    <p>판결문, 신문 스캔, 증언록, 사진 등 지역 항일·친일 관련 자료를 제출해주세요. 검토 후 아카이브에 반영됩니다.</p>
+  </div>
+
+  <div class="steps" id="steps">
+    <div class="step active" id="step-1">
+      <div class="step-num">1</div>파일 첨부
+    </div>
+    <div class="step" id="step-2">
+      <div class="step-num">2</div>자료 정보 입력
+    </div>
+    <div class="step" id="step-3">
+      <div class="step-num">3</div>GitHub에 제출
+    </div>
+  </div>
+
+  <!-- 파일 첨부 -->
+  <div class="card" id="section-file">
+    <div class="card-title">파일 첨부</div>
+    <div class="card-desc">여러 파일을 한 번에 올릴 수 있습니다. 판결문 PDF, 사진 스캔, 마크다운 문서 모두 가능합니다.</div>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" class="drop-input" id="file-input" multiple
+             accept=".md,.txt,.pdf,.jpg,.jpeg,.png,.gif,.webp,.docx">
+      <div class="drop-icon">📂</div>
+      <div class="drop-text"><b>파일을 이 영역에 드래그</b>하거나 클릭해서 선택하세요</div>
+      <div class="drop-hint">지원 형식: MD, TXT, PDF, JPG, PNG, DOCX</div>
+    </div>
+    <div class="file-list" id="file-list"></div>
+  </div>
+
+  <!-- 자료 정보 -->
+  <div class="card">
+    <div class="card-title">자료 정보 입력</div>
+    <div class="card-desc">아래 항목을 최대한 채워주세요. 별표(*) 항목은 필수입니다.</div>
+    <div class="form-grid">
+
+      <div class="form-group full">
+        <label>자료 제목 <span class="req">*</span></label>
+        <input type="text" id="f-title" placeholder="예) 청주농고 학생 박○○ 판결문 1930">
+      </div>
+
+      <div class="form-group">
+        <label>자료 종류 <span class="req">*</span></label>
+        <select id="f-type">
+          <option value="">선택하세요</option>
+          <option>판결문 원본</option>
+          <option>신문 기사 스캔</option>
+          <option>사진·이미지</option>
+          <option>증언록·회고록</option>
+          <option>공문서·행정문서</option>
+          <option>연구 논문·보고서</option>
+          <option>마크다운 정리 문서</option>
+          <option>기타</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>자료 연도 (대략)</label>
+        <input type="text" id="f-date" placeholder="예) 1930, 1919년대, 일제강점기">
+      </div>
+
+      <div class="form-group">
+        <label>관련 지역 <span class="req">*</span></label>
+        <input type="text" id="f-region" placeholder="예) 충청북도 청주, 충남 공주">
+      </div>
+
+      <div class="form-group">
+        <label>관련 인물·사건</label>
+        <input type="text" id="f-persons" placeholder="예) 서상경, 청주농고 맹휴 1930">
+      </div>
+
+      <div class="form-group full">
+        <label>자료 출처·소장처</label>
+        <input type="text" id="f-source" placeholder="예) 국사편찬위원회 전자사료관, 개인 소장, 지역 도서관">
+      </div>
+
+      <div class="form-group full">
+        <label>자료 설명·메모</label>
+        <textarea id="f-note" placeholder="자료에 대해 알고 계신 내용, 발굴 경위, 참고 사항 등을 자유롭게 적어주세요."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>제출자 이름 (선택)</label>
+        <input type="text" id="f-name" placeholder="익명 가능">
+      </div>
+
+      <div class="form-group">
+        <label>연락처 (선택)</label>
+        <input type="text" id="f-contact" placeholder="이메일 또는 GitHub ID">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="notice">
+    <b>제출 방식 안내:</b> 아래 버튼을 누르면 GitHub Issues 페이지가 열립니다.
+    입력하신 내용이 자동으로 채워지며, 파일을 이슈 댓글 영역에 직접 드래그해서 첨부하실 수 있습니다.
+    GitHub 계정이 없어도 익명으로 참여할 수 있는 방법을 안내해드립니다.
+  </div>
+
+  <div class="btn-row">
+    <a href="index.html" class="btn-sub">← 홈으로</a>
+    <button class="btn-main" id="submit-btn" onclick="submitToGitHub()">GitHub에 제출하기 →</button>
+  </div>
+
+  <!-- 결과 섹션 -->
+  <div id="result-section" style="margin-top: 32px;">
+    <div class="result-card">
+      <div class="result-icon">📬</div>
+      <h2>GitHub 이슈가 열렸습니다</h2>
+      <p>자료 정보가 자동으로 채워진 이슈 창이 열렸습니다.<br>
+         파일을 이슈 댓글 영역에 드래그해서 첨부한 뒤 <b>"Submit new issue"</b>를 눌러 제출을 완료하세요.</p>
+      <div class="btn-row" style="justify-content: center;">
+        <a href="index.html" class="btn-sub">홈으로 돌아가기</a>
+        <button class="btn-main" onclick="submitToGitHub()">다시 열기</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const fileList  = document.getElementById('file-list');
+let files = [];
+
+function iconFor(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼️';
+  if (ext === 'pdf') return '📄';
+  if (['md','txt'].includes(ext)) return '📝';
+  return '📎';
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function renderFiles() {
+  fileList.innerHTML = '';
+  files.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <span class="file-icon">${iconFor(f.name)}</span>
+      <span class="file-name">${f.name}</span>
+      <span class="file-size">${fmtSize(f.size)}</span>
+      <button class="file-remove" title="제거" onclick="removeFile(${i})">✕</button>
+    `;
+    fileList.appendChild(div);
+  });
+}
+
+function addFiles(newFiles) {
+  Array.from(newFiles).forEach(f => {
+    if (!files.find(x => x.name === f.name && x.size === f.size)) {
+      files.push(f);
+    }
+  });
+  renderFiles();
+  if (files.length > 0) {
+    document.getElementById('step-1').classList.remove('active');
+    document.getElementById('step-1').classList.add('done');
+    document.getElementById('step-2').classList.add('active');
+  }
+}
+
+function removeFile(i) {
+  files.splice(i, 1);
+  renderFiles();
+  if (files.length === 0) {
+    document.getElementById('step-1').classList.add('active');
+    document.getElementById('step-1').classList.remove('done');
+    document.getElementById('step-2').classList.remove('active');
+  }
+}
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => addFiles(fileInput.files));
+
+function submitToGitHub() {
+  const title   = document.getElementById('f-title').value.trim();
+  const type    = document.getElementById('f-type').value;
+  const date    = document.getElementById('f-date').value.trim();
+  const region  = document.getElementById('f-region').value.trim();
+  const persons = document.getElementById('f-persons').value.trim();
+  const source  = document.getElementById('f-source').value.trim();
+  const note    = document.getElementById('f-note').value.trim();
+  const name    = document.getElementById('f-name').value.trim();
+  const contact = document.getElementById('f-contact').value.trim();
+
+  if (!title) { alert('자료 제목을 입력해주세요.'); return; }
+  if (!type)  { alert('자료 종류를 선택해주세요.'); return; }
+  if (!region) { alert('관련 지역을 입력해주세요.'); return; }
+
+  const fileNames = files.length > 0
+    ? files.map(f => `- ${f.name} (${fmtSize(f.size)})`).join('\n')
+    : '(파일 없음 — 이슈 창에서 직접 첨부해주세요)';
+
+  const body = [
+    `## 자료 제목`,
+    title,
+    ``,
+    `## 자료 종류`,
+    type,
+    ``,
+    `## 자료 연도`,
+    date || '미상',
+    ``,
+    `## 관련 지역`,
+    region,
+    ``,
+    `## 관련 인물·사건`,
+    persons || '(미기재)',
+    ``,
+    `## 자료 출처·소장처`,
+    source || '(미기재)',
+    ``,
+    `## 설명·메모`,
+    note || '(없음)',
+    ``,
+    `## 첨부 파일`,
+    fileNames,
+    ``,
+    `---`,
+    `제출자: ${name || '익명'}${contact ? ` / ${contact}` : ''}`,
+    `제출 경로: 815 아카이브 자료 제출 폼`,
+  ].join('\n');
+
+  const issueTitle = encodeURIComponent(`[자료 제출] ${title}`);
+  const issueBody  = encodeURIComponent(body);
+  const url = `https://github.com/thusus815/815/issues/new?title=${issueTitle}&body=${issueBody}&labels=자료제출`;
+
+  window.open(url, '_blank');
+
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('step-2').classList.remove('active');
+  document.getElementById('step-2').classList.add('done');
+  document.getElementById('step-3').classList.add('active');
+  document.getElementById('steps').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
