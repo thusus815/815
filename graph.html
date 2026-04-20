@@ -44,6 +44,22 @@
 
   .stats { font-size:11px; color:#8b949e; display:flex; gap:12px; }
 
+  #focus-bar {
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:rgba(13,17,23,0.95); border:1px solid #58a6ff; border-radius:8px;
+    padding:10px 16px; display:none; gap:10px; align-items:center; z-index:15;
+    backdrop-filter:blur(8px); font-size:13px;
+  }
+  #focus-bar.active { display:flex; }
+  #focus-bar .focus-label { color:#58a6ff; font-weight:600; }
+  #focus-bar .focus-stats { color:#8b949e; font-size:11px; }
+  #focus-bar button {
+    background:#21262d; border:1px solid #30363d; color:#e6edf3;
+    padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px;
+  }
+  #focus-bar button:hover { border-color:#58a6ff; }
+  #focus-bar button.exit { background:#3a1d1d; border-color:#f85149; color:#f85149; }
+
   #controls {
     position:fixed; bottom:16px; right:16px; display:flex; gap:8px; z-index:10;
   }
@@ -82,6 +98,14 @@
 <div id="loading">
   <div class="spinner"></div>
   <div style="color:#8b949e;font-size:13px;">그래프 로딩 중...</div>
+</div>
+
+<div id="focus-bar">
+  <span class="focus-label" id="focus-label">—</span>
+  <span class="focus-stats" id="focus-stats">—</span>
+  <button id="btn-expand">＋ 1단계 확장</button>
+  <button id="btn-shrink">－ 축소</button>
+  <button id="btn-exit-focus" class="exit">✕ 전체 보기</button>
 </div>
 
 <div id="panel">
@@ -148,6 +172,10 @@ const COLOR_MAP = {
 let sigmaInstance = null;
 let graph = null;
 let activeFilter = null;
+let focusMode = false;        // 부분 그래프 모드 활성 여부
+let focusCenter = null;       // 중심 노드 ID
+let focusDepth = 1;           // 현재 보여주는 이웃 깊이
+let visibleNodes = new Set(); // 현재 보이는 노드 집합
 
 async function init() {
   const res  = await fetch(GRAPH_JSON);
@@ -180,7 +208,7 @@ async function init() {
     } catch(_) {}
   });
 
-  // Sigma 렌더링
+  // Sigma 렌더링 — reducer로 hidden 처리
   sigmaInstance = new Sigma(graph, document.getElementById('container'), {
     renderEdgeLabels: false,
     defaultEdgeColor: '#30363d',
@@ -190,20 +218,30 @@ async function init() {
     labelWeight: '400',
     minCameraRatio: 0.05,
     maxCameraRatio: 20,
+    nodeReducer: (node, data) => {
+      if (focusMode && !visibleNodes.has(node)) return { ...data, hidden: true };
+      return data;
+    },
+    edgeReducer: (edge, data) => {
+      const [s, t] = graph.extremities(edge);
+      if (focusMode && (!visibleNodes.has(s) || !visibleNodes.has(t))) {
+        return { ...data, hidden: true };
+      }
+      return data;
+    },
   });
 
-  // ForceAtlas2 레이아웃
   runLayout();
 
-  // 클릭 이벤트
+  // 클릭 → 부분 그래프 모드 진입
   sigmaInstance.on('clickNode', ({ node }) => {
     const attrs = graph.getNodeAttributes(node);
     showInfo(node, attrs);
-    highlightNeighbors(node);
+    enterFocus(node, 1);
   });
 
+  // 빈 곳 클릭 시는 정보 패널만 닫음 (그래프는 유지)
   sigmaInstance.on('clickStage', () => {
-    resetHighlight();
     document.getElementById('info').style.display = 'none';
   });
 
@@ -223,22 +261,72 @@ function runLayout() {
   setTimeout(() => fa2.stop(), 8000);
 }
 
-function highlightNeighbors(node) {
-  const neighbors = new Set(graph.neighbors(node));
-  neighbors.add(node);
-  graph.forEachNode((n, attrs) => {
-    graph.setNodeAttribute(n, 'color',
-      neighbors.has(n) ? attrs.origColor : '#1c2128'
-    );
-  });
-  graph.forEachEdge((e, attrs, src, tgt) => {
-    graph.setEdgeAttribute(e, 'color',
-      (neighbors.has(src) && neighbors.has(tgt)) ? '#58a6ff' : '#1c2128'
-    );
-  });
+// N단계 이웃까지 BFS로 수집
+function neighborsWithin(centerNode, depth) {
+  const result = new Set([centerNode]);
+  let frontier = new Set([centerNode]);
+  for (let d = 0; d < depth; d++) {
+    const next = new Set();
+    frontier.forEach(n => {
+      graph.neighbors(n).forEach(nb => {
+        if (!result.has(nb)) { result.add(nb); next.add(nb); }
+      });
+    });
+    frontier = next;
+    if (frontier.size === 0) break;
+  }
+  return result;
 }
 
-function resetHighlight() {
+// 부분 그래프 모드 진입
+function enterFocus(node, depth) {
+  focusMode = true;
+  focusCenter = node;
+  focusDepth = depth;
+  visibleNodes = neighborsWithin(node, depth);
+
+  const label = graph.getNodeAttribute(node, 'label');
+  document.getElementById('focus-label').textContent = `🎯 ${label}`;
+  document.getElementById('focus-stats').textContent =
+    `${depth}단계 이웃 · ${visibleNodes.size}개 노드`;
+  document.getElementById('focus-bar').classList.add('active');
+
+  // 색상 초기화 (강조 모드 잔재 제거)
+  resetColors();
+  sigmaInstance.refresh();
+
+  // 카메라를 중심 노드로 부드럽게 이동
+  const centerAttrs = graph.getNodeAttributes(node);
+  sigmaInstance.getCamera().animate(
+    { x: centerAttrs.x, y: centerAttrs.y, ratio: 0.4 },
+    { duration: 600 }
+  );
+}
+
+// 부분 그래프 모드 해제
+function exitFocus() {
+  focusMode = false;
+  focusCenter = null;
+  visibleNodes.clear();
+  document.getElementById('focus-bar').classList.remove('active');
+  resetColors();
+  sigmaInstance.refresh();
+  sigmaInstance.getCamera().animatedReset();
+}
+
+function expandFocus() {
+  if (!focusMode || !focusCenter) return;
+  if (focusDepth >= 5) return;
+  enterFocus(focusCenter, focusDepth + 1);
+}
+
+function shrinkFocus() {
+  if (!focusMode || !focusCenter) return;
+  if (focusDepth <= 1) { exitFocus(); return; }
+  enterFocus(focusCenter, focusDepth - 1);
+}
+
+function resetColors() {
   graph.forEachNode((n, attrs) => {
     graph.setNodeAttribute(n, 'color', attrs.origColor);
   });
@@ -262,44 +350,90 @@ function showInfo(nodeId, attrs) {
   `;
 }
 
-// 검색
+// 검색 — 엔터 또는 정확 매칭 1개면 부분 그래프 모드로 진입
+let searchTimer = null;
 document.getElementById('search').addEventListener('input', e => {
   const q = e.target.value.toLowerCase().trim();
-  if (!q) { resetHighlight(); return; }
-  const matched = new Set();
-  graph.forEachNode((n, attrs) => {
-    if (attrs.label.toLowerCase().includes(q)) matched.add(n);
-  });
-  graph.forEachNode((n, attrs) => {
-    graph.setNodeAttribute(n, 'color', matched.has(n) ? attrs.origColor : '#1c2128');
-  });
-  if (matched.size === 1) {
-    const node = [...matched][0];
-    const attrs = graph.getNodeAttributes(node);
-    sigmaInstance.getCamera().animatedReset();
-    showInfo(node, attrs);
+  clearTimeout(searchTimer);
+
+  if (!q) {
+    if (focusMode) exitFocus();
+    return;
   }
+
+  // 디바운스: 입력 멈춘 후 350ms 뒤에 적용
+  searchTimer = setTimeout(() => {
+    const matched = [];
+    graph.forEachNode((n, attrs) => {
+      if (attrs.label.toLowerCase().includes(q)) matched.push(n);
+    });
+
+    if (matched.length === 0) return;
+
+    if (matched.length === 1) {
+      // 정확히 1개 → 부분 그래프 모드
+      const node = matched[0];
+      enterFocus(node, 1);
+      showInfo(node, graph.getNodeAttributes(node));
+    } else if (matched.length <= 5) {
+      // 2~5개 → 모두 표시 + 각자의 이웃까지
+      const all = new Set();
+      matched.forEach(n => neighborsWithin(n, 1).forEach(x => all.add(x)));
+      focusMode = true;
+      focusCenter = matched[0];
+      focusDepth = 1;
+      visibleNodes = all;
+      document.getElementById('focus-label').textContent = `🔍 "${q}" 매칭 ${matched.length}개`;
+      document.getElementById('focus-stats').textContent = `이웃 포함 ${all.size}개 노드`;
+      document.getElementById('focus-bar').classList.add('active');
+      sigmaInstance.refresh();
+    } else {
+      // 6개 이상 → 매칭만 강조 (전체 그래프 유지)
+      if (focusMode) exitFocus();
+      const set = new Set(matched);
+      graph.forEachNode((n, attrs) => {
+        graph.setNodeAttribute(n, 'color', set.has(n) ? attrs.origColor : '#1c2128');
+      });
+    }
+  }, 350);
 });
 
-// 범례 필터
+// 범례 필터 — 카테고리 부분 그래프 모드
 document.querySelectorAll('.legend-item').forEach(el => {
   el.addEventListener('click', () => {
     const f = el.dataset.filter;
-    if (f === 'all') { resetHighlight(); activeFilter = null; return; }
+    if (f === 'all') { exitFocus(); activeFilter = null; return; }
+
     activeFilter = f;
     const colorMatch = COLOR_MAP[f];
+    const matched = new Set();
     graph.forEachNode((n, attrs) => {
       const match = attrs.origColor === colorMatch ||
                     (attrs.tags || []).some(t => t.includes(f));
-      graph.setNodeAttribute(n, 'color', match ? attrs.origColor : '#1c2128');
+      if (match) matched.add(n);
     });
+
+    if (matched.size === 0) return;
+
+    focusMode = true;
+    focusCenter = null;
+    visibleNodes = matched;
+    document.getElementById('focus-label').textContent = `🏷️ ${f}`;
+    document.getElementById('focus-stats').textContent = `${matched.size}개 노드`;
+    document.getElementById('focus-bar').classList.add('active');
+    resetColors();
+    sigmaInstance.refresh();
   });
 });
 
+// 부분 그래프 모드 컨트롤
+document.getElementById('btn-expand').addEventListener('click', expandFocus);
+document.getElementById('btn-shrink').addEventListener('click', shrinkFocus);
+document.getElementById('btn-exit-focus').addEventListener('click', exitFocus);
+
 // 리셋 버튼
 document.getElementById('btn-reset').addEventListener('click', () => {
-  resetHighlight();
-  sigmaInstance.getCamera().animatedReset();
+  exitFocus();
   document.getElementById('info').style.display = 'none';
   document.getElementById('search').value = '';
 });
