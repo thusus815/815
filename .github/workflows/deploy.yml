@@ -93,6 +93,14 @@ jobs:
           if [ -f vault/graph.html ]; then
             cp vault/graph.html quartz/public/graph.html
           fi
+          # 랜딩 페이지 — Quartz 빌드 결과 덮어쓰기
+          if [ -f vault/index.html ]; then
+            cp vault/index.html quartz/public/index.html
+          fi
+          # 채팅 UI
+          if [ -f vault/chat.html ]; then
+            cp vault/chat.html quartz/public/chat.html
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

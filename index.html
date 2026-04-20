@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="당신 곁의 역사. 지역민의 눈으로 바라본 항일·친일 아카이브. 1인칭 큐레이션, 지식 그래프, AI 대화.">
+<title>815 아카이브 — 당신 곁의 역사</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #f0883e;
+    --green: #3fb950;
+    --red: #f85149;
+    --gold: #e3b341;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  a { text-decoration: none; color: inherit; }
+  img { display: block; }
+
+  /* ── Nav ───────────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(13,17,23,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+    padding: 0 28px;
+    height: 56px;
+  }
+  .nav-logo {
+    font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+    color: var(--text); margin-right: auto;
+  }
+  .nav-logo em { color: var(--accent); font-style: normal; }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-links a {
+    padding: 7px 14px; border-radius: 6px; font-size: 14px;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--surface2); }
+  .nav-links a.cta {
+    background: var(--accent); color: #fff; font-weight: 600;
+  }
+  .nav-links a.cta:hover { opacity: 0.88; background: var(--accent); }
+
+  /* ── Hero ───────────────────────────────────────────────── */
+  .hero {
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 100px 10vw 60px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 60% at 70% 40%, rgba(88,166,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 20% 80%, rgba(240,136,62,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 5px 14px; font-size: 12px; color: var(--muted);
+    margin-bottom: 28px; background: var(--surface);
+  }
+  .hero-eyebrow .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  .hero h1 {
+    font-size: clamp(38px, 7vw, 80px);
+    font-weight: 900; line-height: 1.1;
+    letter-spacing: -2px; margin-bottom: 24px;
+  }
+  .hero h1 .hl { color: var(--accent); }
+  .hero h1 .hl2 { color: var(--gold); }
+
+  .hero-sub {
+    font-size: clamp(16px, 2.2vw, 20px);
+    color: var(--muted); max-width: 560px;
+    margin-bottom: 40px; line-height: 1.8;
+  }
+  .hero-sub strong { color: var(--text); }
+
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 64px; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff;
+    padding: 14px 28px; border-radius: 8px;
+    font-size: 15px; font-weight: 700; transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 14px 28px; border-radius: 8px;
+    font-size: 15px; font-weight: 600; transition: border-color 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .hero-stats {
+    display: flex; gap: 40px; flex-wrap: wrap;
+  }
+  .stat { }
+  .stat-num {
+    font-size: 32px; font-weight: 800; letter-spacing: -1px;
+    color: var(--text);
+  }
+  .stat-num span { color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Divider ────────────────────────────────────────────── */
+  .section { padding: 80px 10vw; }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: clamp(26px, 4vw, 42px); font-weight: 800;
+    letter-spacing: -1px; margin-bottom: 16px; line-height: 1.2;
+  }
+  .section-desc { color: var(--muted); max-width: 560px; font-size: 16px; }
+
+  /* ── Difference section ─────────────────────────────────── */
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px; margin-top: 48px;
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  }
+  .diff-col {
+    background: var(--surface); padding: 32px;
+  }
+  .diff-col.them { border-right: 2px solid var(--border); }
+  .diff-col-head {
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .diff-col.them .diff-col-head { color: var(--muted); }
+  .diff-col.us .diff-col-head { color: var(--accent); }
+  .diff-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 16px; font-size: 15px;
+  }
+  .diff-item .icon { flex-shrink: 0; margin-top: 2px; font-size: 15px; }
+  .diff-col.them .icon { color: var(--muted); }
+  .diff-col.us .icon { color: var(--green); }
+
+  /* ── Persona entry ──────────────────────────────────────── */
+  .persona-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 80px 10vw;
+  }
+  .persona-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px; margin-top: 48px;
+  }
+  .persona-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 28px 24px;
+    transition: border-color 0.2s, transform 0.2s;
+    display: flex; flex-direction: column;
+  }
+  .persona-card:hover {
+    border-color: var(--accent); transform: translateY(-2px);
+  }
+  .persona-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin-bottom: 16px;
+  }
+  .persona-tag {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px; padding: 3px 8px; border-radius: 4px;
+    margin-bottom: 12px;
+  }
+  .tag-fictional { background: rgba(88,166,255,0.12); color: var(--accent); }
+  .tag-curator   { background: rgba(63,185,80,0.12);  color: var(--green);  }
+  .persona-name {
+    font-size: 20px; font-weight: 800; margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .persona-meta { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .persona-desc { font-size: 14px; color: var(--muted); line-height: 1.7; flex: 1; }
+  .persona-quote {
+    margin-top: 18px; padding: 14px 16px;
+    background: var(--surface); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; font-size: 14px;
+    color: var(--text); font-style: italic; line-height: 1.7;
+  }
+  .persona-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 20px; color: var(--accent); font-size: 14px;
+    font-weight: 600; transition: gap 0.15s;
+  }
+  .persona-link:hover { gap: 10px; }
+
+  /* ── Event highlight ────────────────────────────────────── */
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px; margin-top: 48px;
+  }
+  .event-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 22px;
+    transition: border-color 0.15s;
+  }
+  .event-card:hover { border-color: var(--accent); }
+  .event-year {
+    font-size: 11px; font-weight: 700; color: var(--gold);
+    letter-spacing: 1px; margin-bottom: 8px;
+  }
+  .event-name {
+    font-size: 15px; font-weight: 700; margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .event-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .event-badge {
+    display: inline-block; margin-top: 12px; font-size: 11px;
+    padding: 3px 8px; border-radius: 4px;
+    background: var(--surface2); color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Graph CTA ──────────────────────────────────────────── */
+  .graph-cta {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 80px 10vw;
+    display: flex; align-items: center; gap: 60px; flex-wrap: wrap;
+  }
+  .graph-preview {
+    flex: 1; min-width: 260px; max-width: 480px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; aspect-ratio: 16/9;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .graph-preview-dots {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle 1px at 20% 30%, rgba(88,166,255,0.6) 1px, transparent 0),
+      radial-gradient(circle 1px at 55% 20%, rgba(240,136,62,0.5) 1px, transparent 0),
+      radial-gradient(circle 1px at 75% 60%, rgba(88,166,255,0.4) 1px, transparent 0),
+      radial-gradient(circle 1.5px at 35% 70%, rgba(63,185,80,0.5) 1.5px, transparent 0),
+      radial-gradient(circle 1px at 80% 35%, rgba(88,166,255,0.35) 1px, transparent 0),
+      radial-gradient(circle 1px at 45% 80%, rgba(240,136,62,0.4) 1px, transparent 0),
+      radial-gradient(circle 2px at 60% 50%, rgba(88,166,255,0.7) 2px, transparent 0);
+    background-size: 100% 100%;
+  }
+  .graph-preview-lines {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right bottom, rgba(88,166,255,0.12) 0%, transparent 50%),
+      linear-gradient(to right, rgba(88,166,255,0.06) 0%, transparent 100%);
+  }
+  .graph-preview-label {
+    font-size: 12px; color: var(--muted); position: relative; z-index: 1;
+    text-align: center;
+  }
+  .graph-preview-label span {
+    display: block; font-size: 28px; font-weight: 800;
+    color: var(--text); letter-spacing: -1px; margin-bottom: 4px;
+  }
+  .graph-text { flex: 1; min-width: 260px; }
+  .graph-text h2 {
+    font-size: clamp(24px, 3.5vw, 38px); font-weight: 800;
+    letter-spacing: -1px; margin-bottom: 16px; line-height: 1.2;
+  }
+  .graph-text p { color: var(--muted); font-size: 15px; margin-bottom: 28px; }
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  footer {
+    padding: 40px 10vw;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+  }
+  .footer-logo { font-size: 18px; font-weight: 800; }
+  .footer-logo em { color: var(--accent); font-style: normal; }
+  .footer-links { display: flex; gap: 20px; margin-left: auto; flex-wrap: wrap; }
+  .footer-links a { font-size: 13px; color: var(--muted); }
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy { width: 100%; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* ── Scroll reveal ───────────────────────────────────────── */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── Responsive ─────────────────────────────────────────── */
+  @media (max-width: 680px) {
+    .hero { padding: 90px 6vw 50px; }
+    .section, .persona-section, .graph-cta { padding: 60px 6vw; }
+    .diff-grid { grid-template-columns: 1fr; }
+    .diff-col.them { border-right: none; border-bottom: 2px solid var(--border); }
+    .graph-cta { flex-direction: column; }
+    .hero-stats { gap: 24px; }
+    .nav-links a:not(.cta) { display: none; }
+    footer { flex-direction: column; align-items: flex-start; }
+    .footer-links { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo"><em>815</em> 아카이브</div>
+  <div class="nav-links">
+    <a href="#stories">인물·사건</a>
+    <a href="#graph">지식 그래프</a>
+    <a href="chat.html" class="cta">💬 대화하기</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="dot"></span>
+    지역민의 눈으로 바라본 항일·친일 아카이브
+  </div>
+  <h1><span class="hl">나의 3·1운동,</span><br>우리 학교<br><span class="hl2">선배들의 이야기</span></h1>
+  <p class="hero-sub">
+    교과서 속 먼 나라 이야기가 아닙니다.<br>
+    <strong>내가 다니는 학교 선배들</strong>이 격문을 뿌렸고,<br>
+    <strong>내 동네 거리</strong>에서 만세를 불렀습니다.<br>
+    그날 그 자리에 있었던 사람의 목소리로 들어보세요.
+  </p>
+  <div class="hero-ctas">
+    <a href="chat.html" class="btn-primary">📖 박순길과 이야기하기 →</a>
+    <a href="graph.html" class="btn-secondary">🕸 지식 그래프 탐색</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">1,700<span>+</span></div>
+      <div class="stat-label">인물·사건·지역 노드</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">16,000<span>+</span></div>
+      <div class="stat-label">관계망 연결</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">487<span>명</span></div>
+      <div class="stat-label">충북 학생 독립운동가</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">1919<span>~</span>1945</div>
+      <div class="stat-label">수록 시기</div>
+    </div>
+  </div>
+</section>
+
+<!-- Difference -->
+<section class="section reveal" id="stories">
+  <div class="section-label">접근법의 전환</div>
+  <h2 class="section-title">자료는 그대로,<br>진입 방식을 바꿉니다</h2>
+  <p class="section-desc">방대한 LLM 위키는 그대로 있습니다. 다만 거기 들어가는 문을 바꿨습니다 —<br>"그들의 역사"에서 <strong>"나의 역사, 우리 학교 선배의 이야기"</strong>로.</p>
+
+  <div class="diff-grid">
+    <div class="diff-col them">
+      <div class="diff-col-head">기존 독립운동 자료 사이트</div>
+      <div class="diff-item"><span class="icon">—</span><span>인물·사건 카드 나열, 읽고 끝</span></div>
+      <div class="diff-item"><span class="icon">—</span><span>"안중근이 이런 일을 했다" — 3인칭, 저 멀리 이야기</span></div>
+      <div class="diff-item"><span class="icon">—</span><span>서울·전국 단위 서술, 내 지역은 없음</span></div>
+      <div class="diff-item"><span class="icon">—</span><span>자료가 방대하지만 어디서 시작할지 막막</span></div>
+      <div class="diff-item"><span class="icon">—</span><span>관계·맥락 없이 단편 정보만 제공</span></div>
+    </div>
+    <div class="diff-col us">
+      <div class="diff-col-head">815 아카이브의 접근법</div>
+      <div class="diff-item"><span class="icon">✓</span><span><strong>"우리 학교 선배"</strong> — 내 학교에서 벌어진 일을 1인칭으로</span></div>
+      <div class="diff-item"><span class="icon">✓</span><span><strong>"나의 3·1운동"</strong> — 그분들의 역사가 아닌 내 역사로 체감</span></div>
+      <div class="diff-item"><span class="icon">✓</span><span><strong>지역 사건 중심</strong> — 충북·충남부터 내 동네 사건 우선 탐색</span></div>
+      <div class="diff-item"><span class="icon">✓</span><span><strong>대화로 진입</strong> — 박순길에게 직접 "그날 어땠냐"고 물어보기</span></div>
+      <div class="diff-item"><span class="icon">✓</span><span><strong>자료는 그대로</strong> — 위키·그래프로 언제든 깊이 들어가기 가능</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Persona cards -->
+<section class="persona-section reveal" id="personas">
+  <div class="section-label">대화 상대</div>
+  <h2 class="section-title">역사 속 목소리를 만나세요</h2>
+  <p class="section-desc">가상 인물이지만 실제 자료에 근거합니다. 직접 질문하고, 그날의 이야기를 들어보세요.</p>
+
+  <div class="persona-cards">
+    <!-- 박순길 -->
+    <div class="persona-card">
+      <div class="persona-avatar">📖</div>
+      <span class="persona-tag tag-fictional">가상 인물 (자료 기반 합성)</span>
+      <div class="persona-name">박순길 (朴順吉)</div>
+      <div class="persona-meta">청주공립농업학교 3학년 · 1930년 1월</div>
+      <div class="persona-desc">
+        소작농 집안 출신. 1930년 1월 21일, 광주학생운동 연대 맹휴에 참가한
+        청주 농업학교 학생 230명 중 한 명입니다.
+        그날 거리에서 격문을 뿌리고 만세를 불렀던 경험을 1인칭으로 들려줍니다.
+      </div>
+      <blockquote class="persona-quote">
+        "오전 아홉 시 반, 동무들이 격문을 들고 학교 정문 앞에 서 있었습니다.
+         그날 청주 거리에서 만세 소리가 하늘에 닿았을 겁니다."
+      </blockquote>
+      <a href="chat.html?persona=park_sungil_1930" class="persona-link">박순길과 대화하기 →</a>
+    </div>
+
+    <!-- 큐레이터 -->
+    <div class="persona-card">
+      <div class="persona-avatar">🔍</div>
+      <span class="persona-tag tag-curator">자료 기반 안내자</span>
+      <div class="persona-name">안내 큐레이터</div>
+      <div class="persona-meta">충청북도 지역 사건·조직·인물 전담</div>
+      <div class="persona-desc">
+        1876~1945년 충청북도 전역의 항일운동 사건, 단체, 인물을
+        자료에 근거해 객관적으로 해설합니다.
+        타임라인, 배경, 결과, 사료 신뢰도 비교까지 답합니다.
+      </div>
+      <blockquote class="persona-quote">
+        "청주공립농업학교는 충북에서 가장 많은 학생 독립운동가를 배출한 학교입니다.
+         서훈자 21명, 미서훈자 466명 — 총 487명의 기록이 있습니다."
+      </blockquote>
+      <a href="chat.html?persona=curator_local" class="persona-link">큐레이터에게 묻기 →</a>
+    </div>
+  </div>
+
+  <!-- 예시 질문 -->
+  <div style="margin-top: 40px; padding: 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px;">
+    <div style="font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">이런 것들을 물어볼 수 있습니다</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <a href="chat.html" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; color: var(--text); transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">1930년 1월 21일 맹휴 현장 이야기</a>
+      <a href="chat.html" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; color: var(--text); transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">광주 소식이 청주에 닿았을 때</a>
+      <a href="chat.html" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; color: var(--text); transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">충북 항일운동 전체 타임라인</a>
+      <a href="chat.html" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; color: var(--text); transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">친일 관리가 회유한다면?</a>
+      <a href="chat.html" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; color: var(--text); transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">구속자·퇴학자는 누구였나</a>
+      <a href="chat.html" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; color: var(--text); transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">서상경은 어떤 인물인가</a>
+    </div>
+  </div>
+</section>
+
+<!-- Events highlight -->
+<section class="section reveal">
+  <div class="section-label">지역 사건 하이라이트</div>
+  <h2 class="section-title">나와 가까운 곳에서 벌어진 일</h2>
+  <p class="section-desc">역사책 속 숫자가 아니라, 실제 거리와 학교에서 일어난 사건들입니다.</p>
+
+  <div class="events-grid">
+    <a href="graph.html" class="event-card">
+      <div class="event-year">1919.3.9 · 충청북도 청주</div>
+      <div class="event-name">청주농고 3·1만세운동</div>
+      <div class="event-desc">충북 학생 항일운동의 시작. 청주공립농업학교 학생들이 독립만세를 외쳤습니다.</div>
+      <span class="event-badge">학생운동</span>
+    </a>
+    <a href="graph.html" class="event-card">
+      <div class="event-year">1930.1.21 · 충청북도 청주</div>
+      <div class="event-name">청주 3교 연합 맹휴</div>
+      <div class="event-desc">농업학교·고보·여학교 500여 명이 광주학생운동에 연대. 11명 구속, 14명 퇴학.</div>
+      <span class="event-badge">연대시위</span>
+    </a>
+    <a href="graph.html" class="event-card">
+      <div class="event-year">1931.9.4 · 충청북도 청주</div>
+      <div class="event-name">'일제국주의 타도' 맹휴</div>
+      <div class="event-desc">1930년 맹휴보다 더 강도 높은 구호. 조직적으로 준비된 항일 시위.</div>
+      <span class="event-badge">학생운동</span>
+    </a>
+    <a href="graph.html" class="event-card">
+      <div class="event-year">1919.4.1 · 충청북도 청주 내수</div>
+      <div class="event-name">내수 횃불 만세운동</div>
+      <div class="event-desc">밤에 횃불을 들고 만세를 부른 지역 항일운동. 내수공립보통학교 학생 참여.</div>
+      <span class="event-badge">만세운동</span>
+    </a>
+    <a href="graph.html" class="event-card">
+      <div class="event-year">1919 · 충청남도 공주</div>
+      <div class="event-name">영명학교 항일운동</div>
+      <div class="event-desc">공주 영명학교 학생 김관회·현석칠 등이 주도한 항일운동. 판결문 원본 수록.</div>
+      <span class="event-badge">판결문 수록</span>
+    </a>
+    <a href="graph.html" class="event-card">
+      <div class="event-year">1936 · 충청북도 청주</div>
+      <div class="event-name">청남학교 신사참배 거부</div>
+      <div class="event-desc">청남학교 학생들의 신사참배 거부 운동. 종교적 신념과 항일 저항의 결합.</div>
+      <span class="event-badge">종교·항일</span>
+    </a>
+  </div>
+</section>
+
+<!-- Graph CTA -->
+<div class="graph-cta reveal" id="graph">
+  <div class="graph-preview">
+    <div class="graph-preview-lines"></div>
+    <div class="graph-preview-dots"></div>
+    <div class="graph-preview-label">
+      <span>1,700+</span>
+      인물·사건·지역 관계망
+    </div>
+  </div>
+  <div class="graph-text">
+    <div class="section-label">지식 그래프</div>
+    <h2>인물과 사건의<br>연결망을 탐색하세요</h2>
+    <p>누가 누구와 연결되어 있었나. 어떤 사건이 다른 사건을 낳았나.
+       지역·시대·조직별로 필터링하며 구조를 직접 확인합니다.</p>
+    <a href="graph.html" class="btn-primary">🕸 그래프 열기 →</a>
+  </div>
+</div>
+
+<!-- Wiki link -->
+<section class="section reveal" style="padding-top: 0;">
+  <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 36px 40px; display: flex; align-items: center; gap: 32px; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 220px;">
+      <div class="section-label" style="margin-bottom: 10px;">자료 아카이브 (LLM 위키)</div>
+      <h3 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 10px;">더 깊이 읽고 싶다면</h3>
+      <p style="color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 460px;">
+        대화와 그래프로 흥미가 생겼다면, 실제 자료를 문서 형식으로 읽을 수 있습니다.
+        인물·사건·지역·단체별로 분류된 전체 아카이브 위키입니다.
+        친일반민족행위진상규명위원회 보고서, 판결문 원본, 학교별 독립운동 기록이 수록되어 있습니다.
+      </p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;">
+      <a href="01-인물" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-size: 14px; color: var(--text); transition: border-color 0.15s; min-width: 200px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><span>👤 인물 아카이브</span><span style="color:var(--muted)">→</span></a>
+      <a href="02-사건" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-size: 14px; color: var(--text); transition: border-color 0.15s; min-width: 200px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><span>📋 사건 아카이브</span><span style="color:var(--muted)">→</span></a>
+      <a href="04-지역" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-size: 14px; color: var(--text); transition: border-color 0.15s; min-width: 200px;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><span>📍 지역별 보기</span><span style="color:var(--muted)">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo"><em>815</em> 아카이브</div>
+  <div class="footer-links">
+    <a href="graph.html">지식 그래프</a>
+    <a href="chat.html">AI 대화</a>
+    <a href="https://github.com/thusus815/815" target="_blank" rel="noopener">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    자료 출처: 친일반민족행위진상규명위원회 공식 보고서, 국가보훈부 공훈전자사료관, 국가기록원, 국사편찬위원회.
+    이 사이트의 가상 인물 페르소나는 교육·연구 목적의 자료 기반 합성 캐릭터입니다.
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // 채팅 페이지에 페르소나 파라미터 자동 적용
+  document.querySelectorAll('a[href^="chat.html?persona="]').forEach(a => {
+    a.addEventListener('click', e => {
+      const url = new URL(a.href, location.href);
+      const personaId = url.searchParams.get('persona');
+      if (personaId) {
+        sessionStorage.setItem('autoPersona', personaId);
+      }
+    });
+  });
+</script>
+</body>
+</html>

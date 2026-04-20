@@ -314,7 +314,10 @@
 <script>
 const WORKER_URL = "https://815-chat.inyourhistory.workers.dev"; // 실제 배포 URL로 교체
 
-let currentPersonaId = "";
+// URL 파라미터 또는 sessionStorage에서 초기 페르소나 결정
+const _urlParams = new URLSearchParams(location.search);
+let currentPersonaId = _urlParams.get('persona') || sessionStorage.getItem('autoPersona') || "";
+sessionStorage.removeItem('autoPersona');
 let currentPersonaDef = null;
 
 // ── Persona buttons ────────────────────────────────────────────────
@@ -323,35 +326,37 @@ const personaInfo = document.getElementById("persona-info");
 const piEra      = document.getElementById("pi-era");
 const piRegion   = document.getElementById("pi-region");
 
-personaBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    personaBtns.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentPersonaId = btn.dataset.id || "";
+function activatePersona(id) {
+  personaBtns.forEach(b => b.classList.remove("active"));
+  const target = document.querySelector(`.persona-btn[data-id="${id}"]`);
+  if (target) target.classList.add("active");
+  else document.querySelector('.persona-btn[data-id=""]').classList.add("active");
+  currentPersonaId = id;
 
-    if (currentPersonaId) {
-      // fetch persona info from worker
-      fetch(`${WORKER_URL}/personas`)
-        .then(r => r.json())
-        .then(list => {
-          const p = list.find(x => x.id === currentPersonaId);
-          if (p) {
-            piEra.textContent    = `시기: ${p.era}`;
-            piRegion.textContent = `지역: ${p.region}`;
-            personaInfo.classList.add("visible");
-            personaInfo.querySelector(".disclaimer").style.display =
-              p.id === "curator_local" ? "none" : "inline";
-          }
-        })
-        .catch(() => {
-          piEra.textContent    = "";
-          piRegion.textContent = "";
+  if (id) {
+    fetch(`${WORKER_URL}/personas`)
+      .then(r => r.json())
+      .then(list => {
+        const p = list.find(x => x.id === id);
+        if (p) {
+          piEra.textContent    = `시기: ${p.era}`;
+          piRegion.textContent = `지역: ${p.region}`;
           personaInfo.classList.add("visible");
-        });
-    } else {
-      personaInfo.classList.remove("visible");
-    }
-  });
+          personaInfo.querySelector(".disclaimer").style.display =
+            p.id === "curator_local" ? "none" : "inline";
+        }
+      })
+      .catch(() => { personaInfo.classList.add("visible"); });
+  } else {
+    personaInfo.classList.remove("visible");
+  }
+}
+
+// 초기 페르소나 적용
+if (currentPersonaId) activatePersona(currentPersonaId);
+
+personaBtns.forEach(btn => {
+  btn.addEventListener("click", () => activatePersona(btn.dataset.id || ""));
 });
 
 // ── Example pills ──────────────────────────────────────────────────
