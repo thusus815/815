@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>815 독립운동 아카이브 — 지식 그래프</title>
+<script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.0/build/sigma.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/worker.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0d1117; color:#e6edf3; font-family:'Noto Sans KR',sans-serif; overflow:hidden; }
+
+  #container { width:100vw; height:100vh; }
+
+  #panel {
+    position:fixed; top:0; left:0; width:280px; height:100vh;
+    background:rgba(13,17,23,0.92); backdrop-filter:blur(12px);
+    border-right:1px solid #30363d; padding:16px; overflow-y:auto;
+    z-index:10; display:flex; flex-direction:column; gap:12px;
+  }
+
+  #panel h1 { font-size:14px; font-weight:700; color:#58a6ff; border-bottom:1px solid #30363d; padding-bottom:8px; }
+
+  #search {
+    width:100%; padding:8px 10px; border-radius:6px;
+    border:1px solid #30363d; background:#161b22; color:#e6edf3;
+    font-size:13px; outline:none;
+  }
+  #search:focus { border-color:#58a6ff; }
+
+  .legend { display:flex; flex-direction:column; gap:6px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer; padding:4px; border-radius:4px; }
+  .legend-item:hover { background:#161b22; }
+  .legend-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+
+  #info {
+    background:#161b22; border:1px solid #30363d; border-radius:8px;
+    padding:12px; font-size:12px; line-height:1.6; display:none;
+  }
+  #info h3 { font-size:13px; color:#58a6ff; margin-bottom:6px; }
+  #info a { color:#79c0ff; text-decoration:none; }
+  #info a:hover { text-decoration:underline; }
+
+  .stats { font-size:11px; color:#8b949e; display:flex; gap:12px; }
+
+  #controls {
+    position:fixed; bottom:16px; right:16px; display:flex; gap:8px; z-index:10;
+  }
+  .btn {
+    background:rgba(13,17,23,0.9); border:1px solid #30363d;
+    color:#e6edf3; padding:8px 14px; border-radius:6px; cursor:pointer;
+    font-size:12px; backdrop-filter:blur(8px);
+  }
+  .btn:hover { background:#161b22; border-color:#58a6ff; }
+
+  #loading {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    text-align:center; z-index:20;
+  }
+  .spinner {
+    width:40px; height:40px; border:3px solid #30363d;
+    border-top-color:#58a6ff; border-radius:50%;
+    animation:spin 0.8s linear infinite; margin:0 auto 12px;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  #filter-section { display:flex; flex-direction:column; gap:4px; }
+  #filter-section label { font-size:11px; color:#8b949e; }
+
+  .tag-filter {
+    padding:4px 8px; border-radius:4px; border:1px solid #30363d;
+    background:#0d1117; color:#e6edf3; font-size:11px; cursor:pointer;
+    text-align:left; width:100%;
+  }
+  .tag-filter.active { border-color:#58a6ff; background:#161b22; }
+  .tag-filter:hover { background:#161b22; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="color:#8b949e;font-size:13px;">그래프 로딩 중...</div>
+</div>
+
+<div id="panel">
+  <h1>815 독립운동 아카이브</h1>
+
+  <input id="search" type="text" placeholder="인물·사건·지역 검색..." />
+
+  <div class="stats">
+    <span id="stat-nodes">-</span>
+    <span id="stat-edges">-</span>
+  </div>
+
+  <div class="legend">
+    <div style="font-size:11px;color:#8b949e;">노드 분류</div>
+    <div class="legend-item" data-filter="친일인물">
+      <div class="legend-dot" style="background:#FF6B35"></div> 친일 인물
+    </div>
+    <div class="legend-item" data-filter="항일">
+      <div class="legend-dot" style="background:#4A90D9"></div> 항일 인물
+    </div>
+    <div class="legend-item" data-filter="사건">
+      <div class="legend-dot" style="background:#7BC67E"></div> 사건
+    </div>
+    <div class="legend-item" data-filter="단체">
+      <div class="legend-dot" style="background:#B07CC6"></div> 단체
+    </div>
+    <div class="legend-item" data-filter="지역">
+      <div class="legend-dot" style="background:#F5C842"></div> 지역
+    </div>
+    <div class="legend-item" data-filter="학교">
+      <div class="legend-dot" style="background:#E57373"></div> 학교
+    </div>
+    <div class="legend-item" data-filter="all" style="margin-top:4px;">
+      <div class="legend-dot" style="background:#888"></div> 전체 보기
+    </div>
+  </div>
+
+  <div id="info"></div>
+</div>
+
+<div id="container"></div>
+
+<div id="controls">
+  <button class="btn" id="btn-reset">🔄 초기화</button>
+  <button class="btn" id="btn-layout">⚡ 레이아웃 재계산</button>
+  <a href="/" class="btn">← 아카이브로</a>
+</div>
+
+<script>
+const BASE = location.origin + location.pathname.replace(/\/graph\.html$/, '');
+const GRAPH_JSON = BASE + '/graph_data.json';
+
+const COLOR_MAP = {
+  "친일인물": "#FF6B35",
+  "항일":     "#4A90D9",
+  "사건":     "#7BC67E",
+  "단체":     "#B07CC6",
+  "지역":     "#F5C842",
+  "학교":     "#E57373",
+  "문헌":     "#90A4AE",
+  "인덱스":   "#FFFFFF",
+};
+
+let sigmaInstance = null;
+let graph = null;
+let activeFilter = null;
+
+async function init() {
+  const res  = await fetch(GRAPH_JSON);
+  const data = await res.json();
+
+  document.getElementById('stat-nodes').textContent = `노드 ${data.nodes.length}`;
+  document.getElementById('stat-edges').textContent = `엣지 ${data.edges.length}`;
+
+  graph = new graphology.Graph({ multi: false });
+
+  // 노드 추가 (랜덤 초기 위치)
+  data.nodes.forEach(n => {
+    graph.addNode(n.id, {
+      label: n.label,
+      color: n.color || '#888',
+      size:  n.size  || 3,
+      x: Math.random() * 1000 - 500,
+      y: Math.random() * 1000 - 500,
+      tags: n.tags || [],
+      origColor: n.color || '#888',
+    });
+  });
+
+  // 엣지 추가
+  data.edges.forEach(e => {
+    try {
+      if (graph.hasNode(e.source) && graph.hasNode(e.target) && !graph.hasEdge(e.source, e.target)) {
+        graph.addEdge(e.source, e.target, { size: 0.5, color: '#30363d' });
+      }
+    } catch(_) {}
+  });
+
+  // Sigma 렌더링
+  sigmaInstance = new Sigma(graph, document.getElementById('container'), {
+    renderEdgeLabels: false,
+    defaultEdgeColor: '#30363d',
+    defaultNodeColor: '#888',
+    labelColor: { color: '#e6edf3' },
+    labelSize: 10,
+    labelWeight: '400',
+    minCameraRatio: 0.05,
+    maxCameraRatio: 20,
+  });
+
+  // ForceAtlas2 레이아웃
+  runLayout();
+
+  // 클릭 이벤트
+  sigmaInstance.on('clickNode', ({ node }) => {
+    const attrs = graph.getNodeAttributes(node);
+    showInfo(node, attrs);
+    highlightNeighbors(node);
+  });
+
+  sigmaInstance.on('clickStage', () => {
+    resetHighlight();
+    document.getElementById('info').style.display = 'none';
+  });
+
+  document.getElementById('loading').style.display = 'none';
+}
+
+function runLayout() {
+  const fa2 = new FA2Layout(graph, {
+    settings: {
+      gravity: 1,
+      scalingRatio: 10,
+      strongGravityMode: false,
+      barnesHutOptimize: true,
+    }
+  });
+  fa2.start();
+  setTimeout(() => fa2.stop(), 8000);
+}
+
+function highlightNeighbors(node) {
+  const neighbors = new Set(graph.neighbors(node));
+  neighbors.add(node);
+  graph.forEachNode((n, attrs) => {
+    graph.setNodeAttribute(n, 'color',
+      neighbors.has(n) ? attrs.origColor : '#1c2128'
+    );
+  });
+  graph.forEachEdge((e, attrs, src, tgt) => {
+    graph.setEdgeAttribute(e, 'color',
+      (neighbors.has(src) && neighbors.has(tgt)) ? '#58a6ff' : '#1c2128'
+    );
+  });
+}
+
+function resetHighlight() {
+  graph.forEachNode((n, attrs) => {
+    graph.setNodeAttribute(n, 'color', attrs.origColor);
+  });
+  graph.forEachEdge(e => {
+    graph.setEdgeAttribute(e, 'color', '#30363d');
+  });
+}
+
+function showInfo(nodeId, attrs) {
+  const panel = document.getElementById('info');
+  const slug = nodeId;
+  const url  = '/' + slug;
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <h3>${attrs.label}</h3>
+    <div style="color:#8b949e;margin-bottom:8px;">
+      연결: ${graph.degree(nodeId)}개 노드
+    </div>
+    ${attrs.tags.length ? `<div style="margin-bottom:8px;">${attrs.tags.slice(0,5).map(t => `<span style="background:#21262d;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:4px;">${t}</span>`).join('')}</div>` : ''}
+    <a href="${url}" target="_blank">→ 노트 열기</a>
+  `;
+}
+
+// 검색
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { resetHighlight(); return; }
+  const matched = new Set();
+  graph.forEachNode((n, attrs) => {
+    if (attrs.label.toLowerCase().includes(q)) matched.add(n);
+  });
+  graph.forEachNode((n, attrs) => {
+    graph.setNodeAttribute(n, 'color', matched.has(n) ? attrs.origColor : '#1c2128');
+  });
+  if (matched.size === 1) {
+    const node = [...matched][0];
+    const attrs = graph.getNodeAttributes(node);
+    sigmaInstance.getCamera().animatedReset();
+    showInfo(node, attrs);
+  }
+});
+
+// 범례 필터
+document.querySelectorAll('.legend-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const f = el.dataset.filter;
+    if (f === 'all') { resetHighlight(); activeFilter = null; return; }
+    activeFilter = f;
+    const colorMatch = COLOR_MAP[f];
+    graph.forEachNode((n, attrs) => {
+      const match = attrs.origColor === colorMatch ||
+                    (attrs.tags || []).some(t => t.includes(f));
+      graph.setNodeAttribute(n, 'color', match ? attrs.origColor : '#1c2128');
+    });
+  });
+});
+
+// 리셋 버튼
+document.getElementById('btn-reset').addEventListener('click', () => {
+  resetHighlight();
+  sigmaInstance.getCamera().animatedReset();
+  document.getElementById('info').style.display = 'none';
+  document.getElementById('search').value = '';
+});
+
+// 레이아웃 재계산
+document.getElementById('btn-layout').addEventListener('click', runLayout);
+
+init().catch(err => {
+  document.getElementById('loading').innerHTML =
+    `<div style="color:#f85149">그래프 로딩 실패: ${err.message}</div>`;
+});
+</script>
+</body>
+</html>

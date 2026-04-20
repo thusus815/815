@@ -56,6 +56,15 @@ jobs:
         run: npx quartz build
         working-directory: quartz
 
+      - name: Copy graph data and viewer to public
+        run: |
+          if [ -f vault/graph_data.json ]; then
+            cp vault/graph_data.json quartz/public/graph_data.json
+          fi
+          if [ -f vault/graph.html ]; then
+            cp vault/graph.html quartz/public/graph.html
+          fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
