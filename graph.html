@@ -5,8 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>815 독립운동 아카이브 — 지식 그래프</title>
 <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.0/build/sigma.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@3/dist/sigma.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/worker.min.js"></script>
+<script>
+  // 라이브러리 노출 호환 (UMD 빌드별 케이스 대비)
+  window.addEventListener('DOMContentLoaded', () => {
+    if (typeof Sigma === 'undefined' && typeof sigma !== 'undefined') {
+      window.Sigma = sigma.Sigma || sigma.default || sigma;
+    }
+    if (typeof FA2Layout === 'undefined' && typeof graphologyLayoutForceAtlas2 !== 'undefined') {
+      window.FA2Layout = graphologyLayoutForceAtlas2.FA2LayoutSupervisor
+                     || graphologyLayoutForceAtlas2.FA2Layout
+                     || graphologyLayoutForceAtlas2.default;
+    }
+  });
+</script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#0d1117; color:#e6edf3; font-family:'Noto Sans KR',sans-serif; overflow:hidden; }
