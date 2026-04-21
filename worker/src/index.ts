@@ -28,6 +28,7 @@ interface Env {
   SUBMIT_AUTH: KVNamespace;
   ATTACHMENTS: R2Bucket;
   ADMIN_SECRET?: string;
+  GEMINI_API_KEY?: string;
 }
 
 interface SubmitPayload {
@@ -614,6 +615,97 @@ async function handleAdminReject(req: Request, env: Env) {
   return Response.json({ ok: true });
 }
 
+const GEMINI_INSPECT_PROMPT = `당신은 한국 근현대사(1900~1945) 전문 사료 분석가입니다.
+첨부된 이미지는 역사 자료(신문기사 스캔, 판결문, 공문서 등)입니다.
+
+아래 두 가지를 수행하세요:
+
+## [1] 텍스트 전문 추출
+이미지에 있는 모든 텍스트를 원문 그대로 추출하세요. 한자·일본어·한국어 모두 포함합니다. 판독 불가 부분은 □로 표시합니다.
+
+## [2] 사료 분석
+1. **문서 종류**: (판결문 / 신문기사 / 공문서 / 사진 / 기타)
+2. **날짜**: 문서에서 확인되는 날짜
+3. **등장 인물**: 이름, 역할
+4. **주요 사건·내용**: 핵심 사실 요약 3~5줄
+5. **관련 지역**: 언급된 지역
+6. **사료 신뢰도**: 높음 / 보통 / 낮음 + 이유
+7. **아카이브 활용 가능성**: 항일·친일 아카이브에서 어떻게 활용될 수 있는지
+
+반드시 한국어로 답하고, [1]과 [2]를 명확히 구분해주세요.`;
+
+async function handleAdminOcr(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GEMINI_API_KEY) return Response.json({ error: 'GEMINI_API_KEY 미설정' }, { status: 503 });
+
+  const { image_url, title } = await req.json() as { image_url: string; title?: string };
+  if (!image_url) return Response.json({ error: 'image_url required' }, { status: 400 });
+
+  // R2에서 이미지 가져와 base64 변환
+  const imgRes = await fetch(image_url);
+  if (!imgRes.ok) return Response.json({ error: `이미지 로드 실패: ${imgRes.status}` }, { status: 502 });
+
+  const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+  const buffer = await imgRes.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+  // Gemini 2.5 Flash — 이미지 + 텍스트 프롬프트
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: contentType, data: base64 } },
+            { text: title ? `자료명: ${title}\n\n${GEMINI_INSPECT_PROMPT}` : GEMINI_INSPECT_PROMPT },
+          ],
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+      }),
+    }
+  );
+
+  if (!geminiRes.ok) {
+    const err = await geminiRes.text();
+    return Response.json({ error: `Gemini API 오류: ${geminiRes.status}`, detail: err }, { status: 502 });
+  }
+
+  const geminiData = await geminiRes.json() as any;
+  const result = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  if (!result) return Response.json({ error: '분석 결과를 받지 못했습니다.' }, { status: 502 });
+
+  // [1] 텍스트 추출 / [2] 분석 분리
+  const textMatch = result.match(/\[1\][^\n]*\n([\s\S]*?)(?=\[2\]|$)/);
+  const analysisMatch = result.match(/\[2\][^\n]*\n([\s\S]*?)$/);
+
+  return Response.json({
+    ok: true,
+    text: textMatch?.[1]?.trim() || '',
+    analysis: analysisMatch?.[1]?.trim() || '',
+    full: result,
+  });
+}
+
+// /admin/analyze는 OCR 없이 텍스트만 받아 분석 (구버전 호환)
+async function handleAdminAnalyze(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+
+  const { text, title } = await req.json() as { text: string; title?: string };
+  if (!text?.trim()) return Response.json({ error: 'text required' }, { status: 400 });
+
+  const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+    messages: [
+      { role: 'system', content: `당신은 한국 근현대사(1900~1945) 전문 사료 분석가입니다. 주어진 텍스트를 분석하세요.` },
+      { role: 'user', content: `자료명: ${title || ''}\n\n${text.slice(0, 6000)}` },
+    ],
+  } as any);
+
+  return Response.json({ ok: true, analysis: (response as any).response });
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -645,6 +737,10 @@ export default {
         res = await handleAdminApprove(req, env);
       } else if (url.pathname === "/admin/reject" && req.method === "POST") {
         res = await handleAdminReject(req, env);
+      } else if (url.pathname === "/admin/ocr" && req.method === "POST") {
+        res = await handleAdminOcr(req, env);
+      } else if (url.pathname === "/admin/analyze" && req.method === "POST") {
+        res = await handleAdminAnalyze(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))

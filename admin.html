@@ -143,6 +143,42 @@
   }
   .attachment-item a:hover { text-decoration: underline; }
 
+  /* OCR / 분석 영역 */
+  .analysis-section {
+    border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; margin-bottom: 4px;
+  }
+  .analysis-section h3 { font-size: 14px; color: var(--gold); margin-bottom: 14px; }
+  .ocr-select-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .ocr-select-row select {
+    flex: 1; padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 13px;
+  }
+  .btn-ocr {
+    padding: 9px 20px; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity .2s; white-space: nowrap;
+  }
+  .btn-ocr:hover { opacity: .85; }
+  .btn-ocr:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-analyze {
+    padding: 9px 20px; background: #6c4fa8; color: #fff;
+    border: none; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity .2s; white-space: nowrap;
+  }
+  .btn-analyze:hover { opacity: .85; }
+  .btn-analyze:disabled { opacity: .4; cursor: not-allowed; }
+  .ocr-result {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; font-size: 13px; font-family: monospace; white-space: pre-wrap;
+    max-height: 260px; overflow-y: auto; margin-bottom: 10px; display: none;
+  }
+  .analysis-result {
+    background: #1a1a2e; border: 1px solid #3a2a6e; border-radius: 8px;
+    padding: 14px; font-size: 13px; line-height: 1.7; white-space: pre-wrap;
+    max-height: 320px; overflow-y: auto; display: none;
+  }
+  .analysis-loading { color: var(--muted); font-size: 13px; margin: 8px 0; display: none; }
+
   /* 승인/거부 영역 */
   .action-section { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
   .action-section h3 { font-size: 14px; color: var(--gold); margin-bottom: 14px; }
@@ -252,6 +288,22 @@
     <div class="field-grid" id="modal-fields"></div>
 
     <div class="attachments-section" id="modal-attachments"></div>
+
+    <div class="analysis-section">
+      <h3>📄 텍스트 추출 · 사료 분석</h3>
+      <div class="ocr-select-row">
+        <select id="ocr-file-select">
+          <option value="">— 분석할 이미지 선택 —</option>
+        </select>
+        <button class="btn-ocr" id="btn-ocr" onclick="doOcr()">🔍 Gemini 분석</button>
+      </div>
+      <div class="analysis-loading" id="ocr-loading">⏳ Gemini 분석 중 (15~30초)...</div>
+      <div class="analysis-loading" id="analyze-loading" style="display:none"></div>
+      <div style="margin-bottom:6px;font-size:12px;color:var(--muted)" id="ocr-result-label" style="display:none">📝 추출 텍스트</div>
+      <div class="ocr-result" id="ocr-result"></div>
+      <div style="margin-bottom:6px;font-size:12px;color:#9b7fe8;margin-top:10px" id="analysis-label" style="display:none">🤖 사료 분석 결과</div>
+      <div class="analysis-result" id="analysis-result"></div>
+    </div>
 
     <div class="action-section">
       <h3>관리자 처리</h3>
@@ -439,6 +491,15 @@ function openModal(num) {
     ? `<h3>첨부 파일</h3><div class="attachment-grid">${attachHtml}</div>`
     : '';
 
+  // OCR 셀렉트박스 채우기
+  populateOcrSelect(fileSection);
+  ocrText = '';
+  document.getElementById('ocr-result').style.display = 'none';
+  document.getElementById('analysis-result').style.display = 'none';
+  document.getElementById('ocr-result-label').style.display = 'none';
+  document.getElementById('analysis-label').style.display = 'none';
+  document.getElementById('ocr-loading').style.display = 'none';
+
   // 경로 자동 추천
   const region = extractSection(body, '관련 지역') || '';
   const autoFolder = regionToFolder(region);
@@ -567,6 +628,84 @@ async function doReject() {
     document.getElementById('btn-reject').disabled = false;
   }
 }
+
+// ─── OCR + 분석 ───────────────────────────────────────────
+let ocrText = '';
+
+function populateOcrSelect(fileSection) {
+  const sel = document.getElementById('ocr-file-select');
+  sel.innerHTML = '<option value="">— 분석할 이미지 선택 —</option>';
+  if (!fileSection) return;
+  const lines = fileSection.split('\n').filter(l => l.trim().startsWith('-'));
+  lines.forEach(line => {
+    const imgMatch = line.match(/!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/);
+    const linkMatch = line.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
+    if (imgMatch) {
+      const opt = document.createElement('option');
+      opt.value = imgMatch[2];
+      opt.textContent = imgMatch[1] || imgMatch[2].split('/').pop();
+      sel.appendChild(opt);
+    } else if (linkMatch && !linkMatch[2].endsWith('.pdf')) {
+      const opt = document.createElement('option');
+      opt.value = linkMatch[2];
+      opt.textContent = linkMatch[1];
+      sel.appendChild(opt);
+    }
+  });
+}
+
+async function doOcr() {
+  const url = document.getElementById('ocr-file-select').value;
+  if (!url) { alert('분석할 이미지를 선택해주세요.'); return; }
+
+  document.getElementById('btn-ocr').disabled = true;
+  document.getElementById('ocr-loading').style.display = 'block';
+  document.getElementById('ocr-result').style.display = 'none';
+  document.getElementById('analysis-result').style.display = 'none';
+  document.getElementById('ocr-result-label').style.display = 'none';
+  document.getElementById('analysis-label').style.display = 'none';
+  ocrText = '';
+
+  try {
+    const title = currentIssue?.title?.replace('[자료 제출] ', '') || '';
+    const res = await fetch(`${WORKER_URL}/admin/ocr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+      body: JSON.stringify({ image_url: url, title }),
+    });
+    const data = await res.json();
+    document.getElementById('ocr-loading').style.display = 'none';
+
+    if (data.ok) {
+      if (data.text) {
+        ocrText = data.text;
+        document.getElementById('ocr-result-label').style.display = 'block';
+        document.getElementById('ocr-result').textContent = data.text;
+        document.getElementById('ocr-result').style.display = 'block';
+      }
+      if (data.analysis) {
+        document.getElementById('analysis-label').style.display = 'block';
+        document.getElementById('analysis-result').textContent = data.analysis;
+        document.getElementById('analysis-result').style.display = 'block';
+      }
+      if (!data.text && !data.analysis && data.full) {
+        document.getElementById('ocr-result-label').style.display = 'block';
+        document.getElementById('ocr-result').textContent = data.full;
+        document.getElementById('ocr-result').style.display = 'block';
+      }
+    } else {
+      document.getElementById('ocr-result').textContent = data.error || '분석 실패';
+      document.getElementById('ocr-result').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('ocr-loading').style.display = 'none';
+    document.getElementById('ocr-result').textContent = `오류: ${e.message}`;
+    document.getElementById('ocr-result').style.display = 'block';
+  }
+  document.getElementById('btn-ocr').disabled = false;
+}
+
+async function doAnalyze() {}
 
 // ─── 이미지 전체화면 ──────────────────────────────────────
 function openFullscreen(url) {
