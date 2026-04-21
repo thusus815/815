@@ -185,6 +185,36 @@ select option { background: var(--sur2); }
 }
 .btn-sub:hover { border-color: var(--accent); }
 
+/* CONTACT TYPE TABS */
+.contact-tab {
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+  background: var(--sur2); border: 1px solid var(--bd);
+  border-radius: 20px; color: var(--muted); cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.contact-tab.active {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff;
+}
+.contact-tab:hover:not(.active) { border-color: var(--accent); color: var(--txt); }
+
+/* TABS */
+.tab-row {
+  display: flex; gap: 4px; margin-bottom: 32px;
+  border-bottom: 1px solid var(--bd); padding-bottom: 0;
+}
+.tab-btn {
+  padding: 10px 20px; font-size: 13px; font-weight: 600;
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-family: inherit;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn:hover:not(.active) { color: var(--txt); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
 /* RESULT */
 #result-section { display: none; }
 .result-card {
@@ -217,10 +247,19 @@ select option { background: var(--sur2); }
 <div class="page">
 
   <div class="page-header">
-    <div class="page-eyebrow">자료 제출</div>
+    <div class="page-eyebrow">자료 제출 · 추가 문의</div>
     <h1>발굴한 역사 자료를<br>함께 아카이브합니다</h1>
     <p>판결문, 신문 스캔, 증언록, 사진 등 지역 항일·친일 관련 자료를 제출해주세요. 검토 후 아카이브에 반영됩니다.</p>
   </div>
+
+  <!-- 탭 -->
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="switchTab('submit')">자료 제출</button>
+    <button class="tab-btn" onclick="switchTab('inquiry')">추가 문의 · 수정 요청</button>
+  </div>
+
+  <!-- ══ 자료 제출 탭 ══ -->
+  <div class="tab-panel active" id="tab-submit">
 
   <div class="steps" id="steps">
     <div class="step active" id="step-1">
@@ -304,9 +343,21 @@ select option { background: var(--sur2); }
         <input type="text" id="f-name" placeholder="익명 가능">
       </div>
 
-      <div class="form-group">
-        <label>연락처 (선택)</label>
-        <input type="text" id="f-contact" placeholder="이메일 또는 GitHub ID">
+      <div class="form-group full" style="border-top:1px solid var(--bd); padding-top:16px; margin-top:4px;">
+        <label>연락처 <span class="req">*</span> <span style="color:var(--muted); font-weight:400;">— 검토 결과 안내 및 추가 문의용 (아래 중 하나 필수)</span></label>
+        <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+          <button type="button" class="contact-tab active" onclick="setContactType('email')">이메일</button>
+          <button type="button" class="contact-tab" onclick="setContactType('kakao')">카카오 ID</button>
+          <button type="button" class="contact-tab" onclick="setContactType('telegram')">텔레그램 @ID</button>
+        </div>
+        <input type="text" id="f-contact" placeholder="이메일 주소를 입력하세요" required>
+        <small id="f-contact-hint" style="color:var(--muted); font-size:11px; margin-top:4px; display:block;">관리자 외 공개되지 않습니다.</small>
+      </div>
+
+      <div class="form-group full" style="border-top:1px solid var(--bd); padding-top:16px; margin-top:4px;">
+        <label>추후 문의용 비밀번호 <span style="color:var(--muted); font-weight:400;">(선택 — 설정하면 나중에 수정·문의 가능)</span></label>
+        <input type="password" id="f-password" placeholder="4자리 이상 숫자 또는 문자">
+        <small style="color:var(--muted); font-size:11px; margin-top:4px;">이슈 번호와 이 비밀번호로 추후 추가 문의를 남길 수 있습니다. 분실 시 복구 불가.</small>
       </div>
 
     </div>
@@ -334,6 +385,10 @@ select option { background: var(--sur2); }
       <h2>제출이 완료됐습니다</h2>
       <p id="result-msg">자료가 접수됐습니다. 관리자가 검토 후 아카이브에 반영합니다.<br>
          파일은 아래 이슈 페이지에서 직접 첨부해 주세요.</p>
+      <div id="issue-number-box" style="margin:16px 0; padding:14px 20px; background:var(--sur2); border:1px solid var(--bd); border-radius:8px; font-size:14px; display:none;">
+        이슈 번호: <b id="issue-number-display" style="color:var(--accent); font-size:20px;"></b>
+        <span style="color:var(--muted); font-size:12px; margin-left:8px;">— 추가 문의 시 필요합니다. 저장해두세요.</span>
+      </div>
       <div class="btn-row" style="justify-content: center; margin-top: 16px;">
         <a href="index.html" class="btn-sub">홈으로</a>
         <a id="issue-link" href="#" target="_blank" rel="noopener" class="btn-main">이슈 페이지에서 파일 첨부 →</a>
@@ -348,6 +403,67 @@ select option { background: var(--sur2); }
       <small style="margin-top:6px; display:block;">잠시 후 다시 시도하거나, <a href="https://github.com/thusus815/815/issues/new" target="_blank" style="color:var(--accent);">GitHub에서 직접 제출</a>해 주세요.</small>
     </div>
   </div>
+
+  </div><!-- /tab-submit -->
+
+  <!-- ══ 추가 문의 탭 ══ -->
+  <div class="tab-panel" id="tab-inquiry">
+
+    <div class="card">
+      <div class="card-title">추가 문의 · 수정 요청</div>
+      <div class="card-desc">제출 당시 받으신 이슈 번호와 비밀번호로 추가 메시지를 보낼 수 있습니다.</div>
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>이슈 번호 <span class="req">*</span></label>
+          <input type="number" id="c-issue" placeholder="예) 42" min="1">
+        </div>
+
+        <div class="form-group">
+          <label>비밀번호 <span class="req">*</span></label>
+          <input type="password" id="c-password" placeholder="제출 시 설정한 비밀번호">
+        </div>
+
+        <div class="form-group full">
+          <label>문의 내용 <span class="req">*</span></label>
+          <textarea id="c-message" placeholder="수정 요청, 추가 정보, 질문 등을 자유롭게 적어주세요." style="min-height:120px;"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>이름 (선택)</label>
+          <input type="text" id="c-name" placeholder="익명 가능">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="notice">
+      <b>안내:</b> 이슈 번호는 자료 제출 완료 후 표시된 번호입니다. 비밀번호는 제출 시 직접 설정한 것을 입력하세요. 비밀번호를 분실한 경우 복구가 불가하며, <a href="https://github.com/thusus815/815/issues" target="_blank" style="color:var(--accent);">GitHub Issues</a>에서 직접 댓글을 남기실 수 있습니다.
+    </div>
+
+    <div class="btn-row">
+      <a href="index.html" class="btn-sub">← 홈으로</a>
+      <button class="btn-main" id="comment-btn" onclick="doComment()">문의 보내기 →</button>
+    </div>
+
+    <div id="comment-loading" style="display:none; margin-top:24px; text-align:center; color:var(--muted); font-size:14px;">전송 중...</div>
+
+    <div id="comment-result" style="display:none; margin-top:24px;">
+      <div style="background:rgba(63,185,80,0.07); border:1px solid rgba(63,185,80,0.25); border-radius:12px; padding:28px; text-align:center;">
+        <div style="font-size:36px; margin-bottom:12px;">✅</div>
+        <h2 style="font-size:18px; font-weight:800; margin-bottom:8px;">문의가 등록됐습니다</h2>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">관리자가 확인 후 답변드립니다.</p>
+        <a id="comment-link" href="#" target="_blank" rel="noopener" class="btn-main" style="display:inline-flex;">이슈에서 확인 →</a>
+      </div>
+    </div>
+
+    <div id="comment-error" style="display:none; margin-top:24px;">
+      <div style="background:rgba(248,81,73,0.07); border:1px solid rgba(248,81,73,0.25); border-radius:10px; padding:20px 24px; font-size:13px; color:var(--muted);">
+        <b style="color:var(--danger);">오류</b> — <span id="comment-error-msg"></span>
+      </div>
+    </div>
+
+  </div><!-- /tab-inquiry -->
 
 </div>
 
@@ -420,6 +536,67 @@ fileInput.addEventListener('change', () => addFiles(fileInput.files));
 
 const WORKER_URL = "https://815-chat.sungandpartners.workers.dev";
 
+const contactMeta = {
+  email:    { placeholder: '이메일 주소를 입력하세요', hint: '관리자 외 공개되지 않습니다.' },
+  kakao:    { placeholder: '카카오 ID를 입력하세요 (카카오톡 → 설정 → 내 프로필)', hint: '카카오 오픈채팅 또는 DM으로 연락드립니다.' },
+  telegram: { placeholder: '@텔레그램아이디 (예: @myid123)', hint: '텔레그램 DM으로 연락드립니다.' },
+};
+let currentContactType = 'email';
+
+function setContactType(type) {
+  currentContactType = type;
+  document.querySelectorAll('.contact-tab').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const input = document.getElementById('f-contact');
+  const hint  = document.getElementById('f-contact-hint');
+  input.placeholder = contactMeta[type].placeholder;
+  hint.textContent  = contactMeta[type].hint;
+  input.value = '';
+  input.focus();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && name === 'submit') || (i === 1 && name === 'inquiry'));
+  });
+  document.getElementById('tab-submit').classList.toggle('active', name === 'submit');
+  document.getElementById('tab-inquiry').classList.toggle('active', name === 'inquiry');
+}
+
+async function doComment() {
+  const issue    = parseInt(document.getElementById('c-issue').value);
+  const password = document.getElementById('c-password').value.trim();
+  const message  = document.getElementById('c-message').value.trim();
+  const name     = document.getElementById('c-name').value.trim();
+
+  if (!issue)    { alert('이슈 번호를 입력해주세요.'); return; }
+  if (!password) { alert('비밀번호를 입력해주세요.'); return; }
+  if (!message)  { alert('문의 내용을 입력해주세요.'); return; }
+
+  document.getElementById('comment-btn').disabled = true;
+  document.getElementById('comment-loading').style.display = 'block';
+  document.getElementById('comment-error').style.display = 'none';
+
+  try {
+    const res = await fetch(`${WORKER_URL}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issue_number: issue, password, message, submitter: name }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || '알 수 없는 오류');
+
+    document.getElementById('comment-loading').style.display = 'none';
+    document.getElementById('comment-result').style.display = 'block';
+    document.getElementById('comment-link').href = data.comment_url;
+  } catch(e) {
+    document.getElementById('comment-loading').style.display = 'none';
+    document.getElementById('comment-error').style.display = 'block';
+    document.getElementById('comment-error-msg').textContent = e.message;
+    document.getElementById('comment-btn').disabled = false;
+  }
+}
+
 async function doSubmit() {
   const title   = document.getElementById('f-title').value.trim();
   const type    = document.getElementById('f-type').value;
@@ -428,12 +605,14 @@ async function doSubmit() {
   const persons = document.getElementById('f-persons').value.trim();
   const source  = document.getElementById('f-source').value.trim();
   const note    = document.getElementById('f-note').value.trim();
-  const name    = document.getElementById('f-name').value.trim();
-  const contact = document.getElementById('f-contact').value.trim();
+  const name     = document.getElementById('f-name').value.trim();
+  const contact  = document.getElementById('f-contact').value.trim();
+  const password = document.getElementById('f-password').value.trim();
 
-  if (!title)  { alert('자료 제목을 입력해주세요.'); return; }
-  if (!type)   { alert('자료 종류를 선택해주세요.'); return; }
-  if (!region) { alert('관련 지역을 입력해주세요.'); return; }
+  if (!title)   { alert('자료 제목을 입력해주세요.'); return; }
+  if (!type)    { alert('자료 종류를 선택해주세요.'); return; }
+  if (!region)  { alert('관련 지역을 입력해주세요.'); return; }
+  if (!contact) { alert('연락처를 입력해주세요. (이메일 / 카카오 ID / 텔레그램 ID 중 하나)'); return; }
 
   document.getElementById('submit-btn').disabled = true;
   document.getElementById('loading-section').style.display = 'block';
@@ -445,7 +624,9 @@ async function doSubmit() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title, type, date, region, persons, source, note,
-        submitter: name, contact,
+        submitter: name,
+        contact: `[${currentContactType.toUpperCase()}] ${contact}`,
+        password,
         files: files.map(f => `${f.name} (${fmtSize(f.size)})`),
       }),
     });
@@ -458,6 +639,8 @@ async function doSubmit() {
     document.getElementById('loading-section').style.display = 'none';
     document.getElementById('result-section').style.display = 'block';
     document.getElementById('issue-link').href = data.issue_url;
+    document.getElementById('issue-number-display').textContent = `#${data.issue_number}`;
+    document.getElementById('issue-number-box').style.display = 'block';
 
     document.getElementById('step-2').classList.remove('active');
     document.getElementById('step-2').classList.add('done');

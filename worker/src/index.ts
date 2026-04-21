@@ -25,7 +25,7 @@ interface Env {
   GRAPH_DATA_URL: string;
   RELATIONS_URL: string;
   GITHUB_TOKEN?: string;
-  // RELATIONS?: KVNamespace;
+  SUBMIT_AUTH: KVNamespace;
 }
 
 interface SubmitPayload {
@@ -38,7 +38,21 @@ interface SubmitPayload {
   note?: string;
   submitter?: string;
   contact?: string;
-  files?: string[]; // 파일 이름 목록
+  files?: string[];
+  password?: string; // 추후 문의용 비밀번호
+}
+
+interface CommentPayload {
+  issue_number: number;
+  password: string;
+  message: string;
+  submitter?: string;
+}
+
+// 간단한 해시 (SHA-256 via SubtleCrypto)
+async function hashPassword(pw: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 interface GraphNode {
@@ -313,7 +327,61 @@ async function handleSubmit(req: Request, env: Env) {
   }
 
   const issue = await ghRes.json() as { html_url: string; number: number };
+
+  // 비밀번호가 있으면 해시해서 KV에 저장 (30일 TTL)
+  if (payload.password?.trim()) {
+    const hash = await hashPassword(payload.password.trim());
+    await env.SUBMIT_AUTH.put(`issue:${issue.number}`, hash, { expirationTtl: 60 * 60 * 24 * 30 });
+  }
+
   return Response.json({ ok: true, issue_url: issue.html_url, issue_number: issue.number });
+}
+
+async function handleComment(req: Request, env: Env) {
+  const payload = await req.json() as CommentPayload;
+
+  if (!payload.issue_number) return Response.json({ error: "issue_number required" }, { status: 400 });
+  if (!payload.password?.trim()) return Response.json({ error: "password required" }, { status: 400 });
+  if (!payload.message?.trim()) return Response.json({ error: "message required" }, { status: 400 });
+
+  // KV에서 해시 확인
+  const storedHash = await env.SUBMIT_AUTH.get(`issue:${payload.issue_number}`);
+  if (!storedHash) {
+    return Response.json({ error: "이슈를 찾을 수 없거나 비밀번호 설정이 없습니다." }, { status: 404 });
+  }
+
+  const inputHash = await hashPassword(payload.password.trim());
+  if (inputHash !== storedHash) {
+    return Response.json({ error: "비밀번호가 일치하지 않습니다." }, { status: 403 });
+  }
+
+  if (!env.GITHUB_TOKEN) return Response.json({ error: "GITHUB_TOKEN not configured" }, { status: 503 });
+
+  const body = [
+    payload.message,
+    ``,
+    `---`,
+    `제출자: ${payload.submitter || '익명'} (자료 제출 폼 추가 문의)`,
+  ].join('\n');
+
+  const ghRes = await fetch(`https://api.github.com/repos/thusus815/815/issues/${payload.issue_number}/comments`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'my-31-archive-comment',
+      'Accept': 'application/vnd.github+json',
+    },
+    body: JSON.stringify({ body }),
+  });
+
+  if (!ghRes.ok) {
+    const err = await ghRes.text();
+    return Response.json({ error: `GitHub API 오류: ${ghRes.status}`, detail: err }, { status: 502 });
+  }
+
+  const comment = await ghRes.json() as { html_url: string };
+  return Response.json({ ok: true, comment_url: comment.html_url });
 }
 
 const CORS = {
@@ -337,6 +405,8 @@ export default {
         res = await handlePersona(req, env);
       } else if (url.pathname === "/submit" && req.method === "POST") {
         res = await handleSubmit(req, env);
+      } else if (url.pathname === "/comment" && req.method === "POST") {
+        res = await handleComment(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))

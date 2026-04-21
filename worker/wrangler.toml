@@ -7,10 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 [ai]
 binding = "AI"
 
-# 그래프 관계 캐시용 KV (선택)
-# [[kv_namespaces]]
-# binding = "RELATIONS"
-# id = "<생성 후 입력>"
+# 자료 제출 인증 (이슈번호:비밀번호해시 저장)
+[[kv_namespaces]]
+binding = "SUBMIT_AUTH"
+id = "aed9da2e0ee54da58651dd3d1305b217"
 
 [vars]
 SITE_ORIGIN = "https://thusus815.github.io"
