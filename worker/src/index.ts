@@ -24,7 +24,21 @@ interface Env {
   SITE_ORIGIN: string;
   GRAPH_DATA_URL: string;
   RELATIONS_URL: string;
+  GITHUB_TOKEN?: string;
   // RELATIONS?: KVNamespace;
+}
+
+interface SubmitPayload {
+  title: string;
+  type: string;
+  date?: string;
+  region: string;
+  persons?: string;
+  source?: string;
+  note?: string;
+  submitter?: string;
+  contact?: string;
+  files?: string[]; // 파일 이름 목록
 }
 
 interface GraphNode {
@@ -177,7 +191,7 @@ async function handleChat(req: Request, env: Env) {
     { role: "user", content: `질문: ${question}\n\n# 참고 컨텍스트\n${ctx}` },
   ];
 
-  const response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", { messages } as any);
+  const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", { messages } as any);
 
   return Response.json({
     answer: (response as any).response,
@@ -220,7 +234,7 @@ ${ctx}`;
     { role: "user", content: question },
   ];
 
-  const response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", { messages } as any);
+  const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", { messages } as any);
 
   return Response.json({
     answer: (response as any).response,
@@ -232,6 +246,74 @@ ${ctx}`;
     },
     sources: seeds.map(n => ({ id: n.id, label: n.label, path: n.path })),
   });
+}
+
+async function handleSubmit(req: Request, env: Env) {
+  const payload = await req.json() as SubmitPayload;
+
+  if (!payload.title?.trim()) return Response.json({ error: "title required" }, { status: 400 });
+  if (!payload.region?.trim()) return Response.json({ error: "region required" }, { status: 400 });
+
+  const fileSection = payload.files?.length
+    ? payload.files.map(f => `- ${f}`).join('\n')
+    : '(첨부 파일 없음 — 이슈에서 직접 첨부 가능)';
+
+  const body = [
+    `## 자료 제목`,
+    payload.title,
+    ``,
+    `## 자료 종류`,
+    payload.type || '(미기재)',
+    ``,
+    `## 자료 연도`,
+    payload.date || '미상',
+    ``,
+    `## 관련 지역`,
+    payload.region,
+    ``,
+    `## 관련 인물·사건`,
+    payload.persons || '(미기재)',
+    ``,
+    `## 자료 출처·소장처`,
+    payload.source || '(미기재)',
+    ``,
+    `## 설명·메모`,
+    payload.note || '(없음)',
+    ``,
+    `## 첨부 파일 목록`,
+    fileSection,
+    ``,
+    `---`,
+    `제출자: ${payload.submitter || '익명'}${payload.contact ? ` / ${payload.contact}` : ''}`,
+    `제출 경로: 나의 3·1 자료 제출 폼`,
+  ].join('\n');
+
+  if (!env.GITHUB_TOKEN) {
+    return Response.json({ error: "GITHUB_TOKEN not configured" }, { status: 503 });
+  }
+
+  const ghRes = await fetch('https://api.github.com/repos/thusus815/815/issues', {
+    method: 'POST',
+    headers: {
+      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'my-31-archive-submit',
+      'Accept': 'application/vnd.github+json',
+    },
+    body: JSON.stringify({
+      title: `[자료 제출] ${payload.title}`,
+      body,
+      labels: ['자료제출'],
+    }),
+  });
+
+  if (!ghRes.ok) {
+    const err = await ghRes.text();
+    return Response.json({ error: `GitHub API 오류: ${ghRes.status}`, detail: err }, { status: 502 });
+  }
+
+  const issue = await ghRes.json() as { html_url: string; number: number };
+  return Response.json({ ok: true, issue_url: issue.html_url, issue_number: issue.number });
 }
 
 const CORS = {
@@ -253,6 +335,8 @@ export default {
         res = await handleChat(req, env);
       } else if (url.pathname === "/persona" && req.method === "POST") {
         res = await handlePersona(req, env);
+      } else if (url.pathname === "/submit" && req.method === "POST") {
+        res = await handleSubmit(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))
