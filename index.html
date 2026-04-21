@@ -47,6 +47,29 @@ nav a.nav-cta {
   padding: 7px 18px; border-radius: 6px;
 }
 nav a.nav-cta:hover { opacity: 0.88; }
+.nav-menu-btn {
+  display: none; background: none; border: none;
+  color: var(--txt); cursor: pointer; padding: 6px;
+  font-size: 20px; line-height: 1;
+}
+.nav-drawer {
+  display: none; position: fixed; top: 54px; left: 0; right: 0;
+  background: rgba(13,17,23,0.98); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--bd);
+  flex-direction: column; padding: 12px 24px 20px; gap: 4px;
+  z-index: 199;
+}
+.nav-drawer.open { display: flex; }
+.nav-drawer a {
+  font-size: 15px; color: var(--txt); padding: 12px 0;
+  border-bottom: 1px solid var(--bd);
+}
+.nav-drawer a:last-child { border-bottom: none; }
+.nav-drawer a.nav-cta {
+  margin-top: 8px; background: var(--accent); color: #fff;
+  padding: 12px 20px; border-radius: 8px; text-align: center;
+  border: none; font-weight: 700;
+}
 
 /* ══ CINEMATIC INTRO ══ */
 #intro {
@@ -438,8 +461,10 @@ footer {
   .wiki-link { min-width: unset; }
   .timeline::before { left: 70px; }
   .tl-item { grid-template-columns: 70px 1fr; }
-  nav a:not(.nav-cta):not(:last-of-type) { display: none; }
+  nav a:not(.nav-cta) { display: none; }
+  .nav-menu-btn { display: flex; }
 }
+
 </style>
 </head>
 <body>
@@ -468,7 +493,16 @@ footer {
   <a href="01-인물">위키 아카이브</a>
   <a href="submit.html">자료 제출</a>
   <a href="chat.html" class="nav-cta">대화하기</a>
+  <button class="nav-menu-btn" onclick="toggleDrawer()" aria-label="메뉴">&#9776;</button>
 </nav>
+<!-- 모바일 드로어 -->
+<div class="nav-drawer" id="nav-drawer">
+  <a href="#events" onclick="closeDrawer()">지역 사건</a>
+  <a href="#graph" onclick="closeDrawer()">지식 그래프</a>
+  <a href="01-인물">위키 아카이브</a>
+  <a href="submit.html">자료 제출</a>
+  <a href="chat.html" class="nav-cta">대화하기</a>
+</div>
 
 <!-- ── HERO ── -->
 <section class="hero">
@@ -648,6 +682,16 @@ footer {
   </div>
 </div>
 
+<!-- ── 자료 제출 CTA ── -->
+<div class="reveal" style="padding: 48px 10vw; background: var(--sur); border-top: 1px solid var(--bd); border-bottom: 1px solid var(--bd); display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap;">
+  <div>
+    <div style="font-size:11px; letter-spacing:2.5px; font-weight:600; color:var(--gold); text-transform:uppercase; margin-bottom:10px;">자료 제출</div>
+    <h3 style="font-size:22px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px;">발굴한 자료를 아카이브에 추가해주세요</h3>
+    <p style="font-size:14px; color:var(--muted); line-height:1.7; max-width:480px;">판결문, 신문 스캔, 사진, 증언록 등 지역 항일·친일 관련 자료를 드래그앤드롭으로 제출할 수 있습니다. 검토 후 아카이브에 반영됩니다.</p>
+  </div>
+  <a href="submit.html" style="display:inline-flex; align-items:center; gap:8px; background:var(--gold); color:#0d1117; padding:14px 28px; border-radius:8px; font-size:14px; font-weight:700; white-space:nowrap; flex-shrink:0;">자료 제출하기 →</a>
+</div>
+
 <!-- ── 위키 링크 ── -->
 <div class="wiki-band reveal">
   <div class="wiki-text">
@@ -670,7 +714,7 @@ footer {
     <a href="graph.html">지식 그래프</a>
     <a href="chat.html">AI 대화</a>
     <a href="submit.html">자료 제출</a>
-    <a href="https://github.com/thusus815/815" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/thusus815/815/issues" target="_blank" rel="noopener">제출 현황</a>
   </div>
   <div class="footer-copy">
     자료 출처: 친일반민족행위진상규명위원회 공식 보고서, 국가보훈부 공훈전자사료관, 국가기록원, 국사편찬위원회.
@@ -721,6 +765,17 @@ skipBtn.addEventListener('click', e => { e.stopPropagation(); dismissIntro(); })
 introEl.addEventListener('click', dismissIntro);
 document.addEventListener('keydown', e => { if (['Escape','Enter',' '].includes(e.key)) dismissIntro(); }, { once: true });
 document.body.style.overflow = 'hidden';
+
+/* ── Mobile Nav ── */
+function toggleDrawer() {
+  document.getElementById('nav-drawer').classList.toggle('open');
+}
+function closeDrawer() {
+  document.getElementById('nav-drawer').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('nav') && !e.target.closest('.nav-drawer')) closeDrawer();
+});
 
 /* ── Scroll Reveal ── */
 new IntersectionObserver(entries => {
