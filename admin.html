@@ -357,20 +357,35 @@ document.getElementById('secret-input').addEventListener('keydown', e => {
 async function doLogin() {
   const secret = document.getElementById('secret-input').value.trim();
   if (!secret) return;
-  // 실제 이슈 1개 조회로 인증 확인
-  const res = await fetch(`${WORKER_URL}/admin/issues?state=open&page=1`, {
-    headers: { 'X-Admin-Secret': secret }
-  });
-  if (res.status === 401) {
-    document.getElementById('login-err').textContent = '비밀번호가 맞지 않습니다.';
-    return;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '확인 중...';
+
+  try {
+    const res = await fetch(`${WORKER_URL}/admin/issues?state=open&page=1`, {
+      headers: { 'X-Admin-Secret': secret }
+    });
+    if (res.status === 401) {
+      errEl.textContent = '비밀번호가 맞지 않습니다.';
+      return;
+    }
+    if (!res.ok) {
+      errEl.textContent = `서버 오류: ${res.status} — Worker가 응답하지 않습니다.`;
+      return;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      errEl.textContent = `응답 오류: ${JSON.stringify(data)}`;
+      return;
+    }
+    adminSecret = secret;
+    errEl.textContent = '';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    allIssues = data;
+    renderIssues();
+  } catch(e) {
+    errEl.textContent = `네트워크 오류: ${e.message}`;
   }
-  adminSecret = secret;
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  const data = await res.json();
-  allIssues = Array.isArray(data) ? data : [];
-  renderIssues();
 }
 
 function doLogout() {
