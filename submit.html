@@ -619,6 +619,25 @@ async function doSubmit() {
   document.getElementById('error-section').style.display = 'none';
 
   try {
+    // 1단계: 파일이 있으면 먼저 R2에 업로드
+    let uploadedFiles = [];
+    if (files.length > 0) {
+      const fd = new FormData();
+      files.forEach(f => fd.append('file', f));
+      const upRes = await fetch(`${WORKER_URL}/upload`, { method: 'POST', body: fd });
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.ok) throw new Error(upData.error || '파일 업로드 실패');
+      uploadedFiles = upData.files;
+    }
+
+    // 2단계: 이슈 생성 (파일 URL 포함)
+    const fileList = uploadedFiles.length > 0
+      ? uploadedFiles.map(f => {
+          const isImage = f.type.startsWith('image/');
+          return isImage ? `- ![${f.name}](${f.url})` : `- [${f.name}](${f.url})`;
+        })
+      : files.map(f => `- ${f.name} (${fmtSize(f.size)}) ⚠️ 업로드 실패`);
+
     const res = await fetch(`${WORKER_URL}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -627,7 +646,7 @@ async function doSubmit() {
         submitter: name,
         contact: `[${currentContactType.toUpperCase()}] ${contact}`,
         password,
-        files: files.map(f => `${f.name} (${fmtSize(f.size)})`),
+        files: fileList,
       }),
     });
 
