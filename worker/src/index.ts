@@ -26,6 +26,8 @@ interface Env {
   RELATIONS_URL: string;
   GITHUB_TOKEN?: string;
   SUBMIT_AUTH: KVNamespace;
+  ATTACHMENTS: R2Bucket;
+  ADMIN_SECRET?: string;
 }
 
 interface SubmitPayload {
@@ -262,6 +264,43 @@ ${ctx}`;
   });
 }
 
+// 허용 MIME 타입
+const ALLOWED_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/tiff',
+  'application/pdf',
+]);
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
+async function handleUpload(req: Request, env: Env) {
+  const formData = await req.formData();
+  const uploaded: { name: string; url: string; type: string }[] = [];
+
+  for (const [, value] of formData.entries()) {
+    if (!(value instanceof File)) continue;
+
+    if (!ALLOWED_TYPES.has(value.type)) {
+      return Response.json({ error: `허용되지 않는 파일 형식: ${value.type}` }, { status: 400 });
+    }
+    if (value.size > MAX_FILE_SIZE) {
+      return Response.json({ error: `파일 크기 초과 (최대 20MB): ${value.name}` }, { status: 400 });
+    }
+
+    // 파일명 충돌 방지: timestamp + 원본 파일명
+    const ts = Date.now();
+    const safeName = value.name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_');
+    const key = `${ts}_${safeName}`;
+
+    await env.ATTACHMENTS.put(key, await value.arrayBuffer(), {
+      httpMetadata: { contentType: value.type },
+    });
+
+    const url = `https://pub-d4943151a8eb406e8517d30d72f465f4.r2.dev/${key}`;
+    uploaded.push({ name: value.name, url, type: value.type });
+  }
+
+  return Response.json({ ok: true, files: uploaded });
+}
+
 async function handleSubmit(req: Request, env: Env) {
   const payload = await req.json() as SubmitPayload;
 
@@ -384,6 +423,197 @@ async function handleComment(req: Request, env: Env) {
   return Response.json({ ok: true, comment_url: comment.html_url });
 }
 
+// ─── 관리자 인증 ────────────────────────────────────────────
+function checkAdmin(req: Request, env: Env): boolean {
+  const secret = req.headers.get('X-Admin-Secret');
+  if (!secret || !env.ADMIN_SECRET) return false;
+  // 쉼표로 구분된 여러 비밀번호 지원
+  return env.ADMIN_SECRET.split(',').map(s => s.trim()).includes(secret);
+}
+
+// 이슈 본문에서 섹션 값 추출
+function parseSection(body: string, heading: string): string {
+  const re = new RegExp(`## ${heading}\\s*\\n([\\s\\S]*?)(?=\\n## |\\n---|-$)`, 'm');
+  const m = body.match(re);
+  return m ? m[1].trim() : '';
+}
+
+// 지역 → 폴더 경로 자동 매핑
+function regionToFolder(region: string): string {
+  const r = region.trim();
+  if (r.includes('예산')) return '04-지역/충남/예산';
+  if (r.includes('공주')) return '04-지역/충남/공주';
+  if (r.includes('천안') || r.includes('아산')) return '04-지역/충남/천안';
+  if (r.includes('충남')) return '04-지역/충남';
+  if (r.includes('청주') || r.includes('충북')) return '04-지역/충북/청주';
+  if (r.includes('충북')) return '04-지역/충북';
+  if (r.includes('서울') || r.includes('경성')) return '04-지역/서울';
+  return '04-지역/미분류';
+}
+
+// 이슈 본문 → md 파일 내용 자동 생성
+function buildMdFromIssue(issue: any): { md: string; folder: string; filename: string } {
+  const body: string = issue.body || '';
+  const title    = parseSection(body, '자료 제목') || issue.title.replace('[자료 제출] ', '');
+  const type     = parseSection(body, '자료 종류');
+  const date     = parseSection(body, '자료 연도');
+  const region   = parseSection(body, '관련 지역');
+  const persons  = parseSection(body, '관련 인물·사건');
+  const source   = parseSection(body, '자료 출처·소장처');
+  const note     = parseSection(body, '설명·메모');
+  const files    = parseSection(body, '첨부 파일 목록');
+
+  const submitterLine = (body.match(/^제출자: (.+)$/m) || [])[1] || '';
+
+  const folder   = regionToFolder(region);
+  const safeTitle = title.replace(/[\/\\:*?"<>|]/g, '_').slice(0, 60);
+  const filename  = `${safeTitle}.md`;
+
+  const md = [
+    `# ${title}`,
+    ``,
+    `- **자료 종류**: ${type || '미상'}`,
+    `- **연도**: ${date || '미상'}`,
+    `- **지역**: ${region || '미상'}`,
+    `- **출처**: ${source || '미기재'}`,
+    `- **제출자**: ${submitterLine}`,
+    `- **원본 이슈**: [#${issue.number}](${issue.html_url})`,
+    ``,
+    `---`,
+    ``,
+    `## 관련 인물·사건`,
+    ``,
+    persons || '(미기재)',
+    ``,
+    `## 설명·메모`,
+    ``,
+    note || '(없음)',
+    ``,
+    `## 첨부 파일`,
+    ``,
+    files || '(없음)',
+  ].join('\n');
+
+  return { md, folder, filename };
+}
+
+async function handleAdminIssues(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const url = new URL(req.url);
+  const state = url.searchParams.get('state') || 'open';
+  const page  = url.searchParams.get('page') || '1';
+
+  const ghRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=${state}&per_page=30&page=${page}`,
+    { headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-admin' } }
+  );
+  const issues = await ghRes.json();
+  return Response.json(issues);
+}
+
+async function handleAdminApprove(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const { issue_number, folder_override, filename_override, md_override } =
+    await req.json() as {
+      issue_number: number;
+      folder_override?: string;
+      filename_override?: string;
+      md_override?: string;
+    };
+
+  // 이슈 상세 조회
+  const issueRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    { headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-admin' } }
+  );
+  const issue = await issueRes.json() as any;
+
+  const { md: autoMd, folder: autoFolder, filename: autoFilename } = buildMdFromIssue(issue);
+  const folder   = folder_override   || autoFolder;
+  const filename = filename_override || autoFilename;
+  const md       = md_override       || autoMd;
+
+  const filePath = `${folder}/${filename}`;
+  const content  = btoa(unescape(encodeURIComponent(md))); // base64 UTF-8
+
+  // GitHub Contents API로 md 파일 생성
+  const createRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(filePath)}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${env.GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'my-31-admin',
+      },
+      body: JSON.stringify({
+        message: `feat: 자료 승인 #${issue_number} — ${filename}`,
+        content,
+      }),
+    }
+  );
+
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    return Response.json({ error: `파일 생성 실패: ${createRes.status}`, detail: err }, { status: 502 });
+  }
+  const created = await createRes.json() as any;
+
+  // 이슈에 승인 댓글
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`,
+    {
+      method: 'POST',
+      headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-admin' },
+      body: JSON.stringify({ body: `✅ **자료가 승인되어 아카이브에 반영되었습니다.**\n\n- 경로: \`${filePath}\`\n- 커밋: ${created.commit?.html_url || ''}` }),
+    }
+  );
+
+  // 이슈 닫기
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    {
+      method: 'PATCH',
+      headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-admin' },
+      body: JSON.stringify({ state: 'closed', state_reason: 'completed' }),
+    }
+  );
+
+  return Response.json({ ok: true, file_path: filePath, commit_url: created.commit?.html_url });
+}
+
+async function handleAdminReject(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const { issue_number, reason } = await req.json() as { issue_number: number; reason: string };
+
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`,
+    {
+      method: 'POST',
+      headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-admin' },
+      body: JSON.stringify({ body: `⚠️ **자료 검토 결과 반려 처리되었습니다.**\n\n**사유**: ${reason}\n\n추가 자료나 수정 후 재제출해 주세요.` }),
+    }
+  );
+
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    {
+      method: 'PATCH',
+      headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-admin' },
+      body: JSON.stringify({ state: 'closed', state_reason: 'not_planned' }),
+    }
+  );
+
+  return Response.json({ ok: true });
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -403,10 +633,18 @@ export default {
         res = await handleChat(req, env);
       } else if (url.pathname === "/persona" && req.method === "POST") {
         res = await handlePersona(req, env);
+      } else if (url.pathname === "/upload" && req.method === "POST") {
+        res = await handleUpload(req, env);
       } else if (url.pathname === "/submit" && req.method === "POST") {
         res = await handleSubmit(req, env);
       } else if (url.pathname === "/comment" && req.method === "POST") {
         res = await handleComment(req, env);
+      } else if (url.pathname === "/admin/issues" && req.method === "GET") {
+        res = await handleAdminIssues(req, env);
+      } else if (url.pathname === "/admin/approve" && req.method === "POST") {
+        res = await handleAdminApprove(req, env);
+      } else if (url.pathname === "/admin/reject" && req.method === "POST") {
+        res = await handleAdminReject(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))

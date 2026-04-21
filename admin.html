@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 — 나의 3·1</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --card: #20232f;
+    --border: #2e3142;
+    --gold: #c9a84c;
+    --gold-dim: #8a6f30;
+    --text: #e8e6e0;
+    --muted: #7a7a8a;
+    --green: #3dba7a;
+    --red: #e05c5c;
+    --blue: #5b8dee;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Serif KR', Georgia, serif; min-height: 100vh; }
+
+  /* 로그인 */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 24px;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 48px 40px; width: 100%; max-width: 400px;
+    text-align: center;
+  }
+  .login-box h1 { font-size: 22px; margin-bottom: 8px; color: var(--gold); }
+  .login-box p { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  .login-box input {
+    width: 100%; padding: 12px 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--text); font-size: 15px; margin-bottom: 16px;
+  }
+  .login-box button {
+    width: 100%; padding: 13px; background: var(--gold); color: #1a1200;
+    border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .login-box button:hover { opacity: .85; }
+  .login-err { color: var(--red); font-size: 13px; margin-top: 12px; }
+
+  /* 메인 레이아웃 */
+  #app { display: none; }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 32px; display: flex; align-items: center; gap: 16px;
+  }
+  header h1 { font-size: 18px; color: var(--gold); flex: 1; }
+  header .logout { color: var(--muted); font-size: 13px; cursor: pointer; }
+  header .logout:hover { color: var(--text); }
+
+  .tabs {
+    padding: 16px 32px 0; border-bottom: 1px solid var(--border);
+    display: flex; gap: 0;
+  }
+  .tab-btn {
+    padding: 10px 24px; background: none; border: none; color: var(--muted);
+    font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all .2s;
+  }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  .main { padding: 28px 32px; max-width: 1100px; margin: 0 auto; }
+
+  /* 이슈 목록 */
+  .filter-row { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+  .filter-row select, .filter-row input {
+    padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 14px;
+  }
+  .refresh-btn {
+    padding: 8px 18px; background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 7px; cursor: pointer; font-size: 14px;
+  }
+  .refresh-btn:hover { border-color: var(--gold); }
+
+  .issue-list { display: flex; flex-direction: column; gap: 10px; }
+  .issue-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; cursor: pointer; transition: border-color .2s;
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .issue-card:hover { border-color: var(--gold-dim); }
+  .issue-num { color: var(--muted); font-size: 13px; min-width: 36px; padding-top: 2px; }
+  .issue-body { flex: 1; }
+  .issue-title { font-size: 15px; margin-bottom: 6px; }
+  .issue-meta { font-size: 12px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge-open { background: #1a3a1a; color: var(--green); }
+  .badge-closed { background: #2a1a1a; color: var(--muted); }
+
+  .empty-msg { color: var(--muted); text-align: center; padding: 60px 0; font-size: 15px; }
+  .loading-msg { color: var(--muted); text-align: center; padding: 40px 0; }
+
+  /* 상세 모달 */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    z-index: 100; overflow-y: auto; padding: 32px 16px;
+  }
+  .modal-backdrop.open { display: flex; align-items: flex-start; justify-content: center; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); width: 100%; max-width: 760px;
+    padding: 32px; position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 20px; background: none; border: none;
+    color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal h2 { font-size: 18px; margin-bottom: 20px; padding-right: 32px; }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .field-item { background: var(--card); border-radius: 8px; padding: 12px 14px; }
+  .field-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .field-value { font-size: 14px; word-break: break-all; }
+  .field-full { grid-column: 1 / -1; }
+
+  /* 이미지 미리보기 */
+  .attachments-section { margin-bottom: 20px; }
+  .attachments-section h3 { font-size: 14px; color: var(--gold); margin-bottom: 12px; }
+  .attachment-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .attachment-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .attachment-item img {
+    max-width: 200px; max-height: 160px; border-radius: 6px;
+    border: 1px solid var(--border); cursor: pointer; object-fit: cover;
+  }
+  .attachment-item img:hover { border-color: var(--gold); }
+  .attachment-item a {
+    font-size: 12px; color: var(--blue); text-decoration: none; max-width: 200px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
+  }
+  .attachment-item a:hover { text-decoration: underline; }
+
+  /* 승인/거부 영역 */
+  .action-section { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
+  .action-section h3 { font-size: 14px; color: var(--gold); margin-bottom: 14px; }
+  .path-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .path-row input {
+    flex: 1; padding: 9px 12px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 13px; font-family: monospace;
+  }
+  .path-row label { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block; }
+  .path-group { flex: 1; }
+  .md-preview-toggle {
+    font-size: 12px; color: var(--blue); cursor: pointer; margin-bottom: 10px; display: inline-block;
+  }
+  .md-editor {
+    width: 100%; height: 220px; padding: 10px; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--text); font-size: 12px; font-family: monospace;
+    resize: vertical; display: none; margin-bottom: 10px;
+  }
+  .reject-reason {
+    width: 100%; padding: 9px 12px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 13px;
+    margin-bottom: 12px; display: none;
+  }
+  .action-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-approve {
+    padding: 11px 28px; background: var(--green); color: #0a1a10;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .btn-approve:hover { opacity: .85; }
+  .btn-approve:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-reject {
+    padding: 11px 28px; background: var(--red); color: #fff;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .btn-reject:hover { opacity: .85; }
+  .btn-reject:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-outline {
+    padding: 11px 20px; background: none; border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+  .btn-outline:hover { border-color: var(--gold); }
+  .action-result { margin-top: 12px; font-size: 13px; }
+  .action-result.ok { color: var(--green); }
+  .action-result.err { color: var(--red); }
+
+  /* 이미지 전체화면 */
+  .img-fullscreen {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.9);
+    z-index: 200; align-items: center; justify-content: center; cursor: zoom-out;
+  }
+  .img-fullscreen.open { display: flex; }
+  .img-fullscreen img { max-width: 94vw; max-height: 94vh; border-radius: 6px; }
+
+  @media (max-width: 600px) {
+    .field-grid { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    header { padding: 12px 16px; }
+    .tabs { padding: 12px 16px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>나의 3·1</h1>
+    <p>관리자 전용 페이지입니다</p>
+    <input type="password" id="secret-input" placeholder="관리자 비밀번호" autocomplete="current-password">
+    <button onclick="doLogin()">로그인</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="app">
+  <header>
+    <h1>나의 3·1 — 관리자</h1>
+    <span class="logout" onclick="doLogout()">로그아웃</span>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('issues')">제출 자료</button>
+    <button class="tab-btn" onclick="switchTab('closed')">처리 완료</button>
+  </div>
+
+  <div class="main">
+    <div class="filter-row">
+      <input type="text" id="search-input" placeholder="제목·지역 검색..." oninput="filterIssues()" style="flex:1">
+      <button class="refresh-btn" onclick="loadIssues()">↻ 새로고침</button>
+    </div>
+    <div id="issue-list-area">
+      <div class="loading-msg">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 상세 모달 -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+  <div class="modal" id="modal-content">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <h2 id="modal-title"></h2>
+
+    <div class="field-grid" id="modal-fields"></div>
+
+    <div class="attachments-section" id="modal-attachments"></div>
+
+    <div class="action-section">
+      <h3>관리자 처리</h3>
+      <div class="path-row">
+        <div class="path-group">
+          <label>저장 폴더 경로</label>
+          <input type="text" id="field-folder" placeholder="04-지역/충남/예산">
+        </div>
+        <div class="path-group">
+          <label>파일명 (.md)</label>
+          <input type="text" id="field-filename" placeholder="자료제목.md">
+        </div>
+      </div>
+      <span class="md-preview-toggle" onclick="toggleMdEditor()">▶ md 내용 직접 편집</span>
+      <textarea class="md-editor" id="md-editor"></textarea>
+
+      <div class="action-btns">
+        <button class="btn-approve" id="btn-approve" onclick="doApprove()">✅ 승인 · 아카이브 반영</button>
+        <button class="btn-outline" onclick="toggleRejectBox()">⚠️ 반려</button>
+      </div>
+
+      <textarea class="reject-reason" id="reject-reason" rows="3" placeholder="반려 사유를 입력해주세요..."></textarea>
+      <div id="reject-confirm" style="display:none; margin-top:8px;">
+        <button class="btn-reject" id="btn-reject" onclick="doReject()">반려 처리 확정</button>
+      </div>
+
+      <div class="action-result" id="action-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 이미지 전체화면 -->
+<div class="img-fullscreen" id="img-fullscreen" onclick="closeFullscreen()">
+  <img id="fullscreen-img" src="" alt="">
+</div>
+
+<script>
+const WORKER_URL = 'https://815-chat.sungandpartners.workers.dev';
+let adminSecret = '';
+let allIssues = [];
+let currentIssue = null;
+let currentTab = 'open';
+let mdEditorOpen = false;
+let rejectBoxOpen = false;
+
+// ─── 로그인 ───────────────────────────────────────────────
+document.getElementById('secret-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const secret = document.getElementById('secret-input').value.trim();
+  if (!secret) return;
+  // 실제 이슈 1개 조회로 인증 확인
+  const res = await fetch(`${WORKER_URL}/admin/issues?state=open&page=1`, {
+    headers: { 'X-Admin-Secret': secret }
+  });
+  if (res.status === 401) {
+    document.getElementById('login-err').textContent = '비밀번호가 맞지 않습니다.';
+    return;
+  }
+  adminSecret = secret;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const data = await res.json();
+  allIssues = Array.isArray(data) ? data : [];
+  renderIssues();
+}
+
+function doLogout() {
+  adminSecret = '';
+  allIssues = [];
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('secret-input').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+// ─── 탭 ──────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab === 'issues' ? 'open' : 'closed';
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (tab === 'issues' && i === 0) || (tab === 'closed' && i === 1));
+  });
+  loadIssues();
+}
+
+async function loadIssues() {
+  document.getElementById('issue-list-area').innerHTML = '<div class="loading-msg">불러오는 중...</div>';
+  const res = await fetch(`${WORKER_URL}/admin/issues?state=${currentTab}`, {
+    headers: { 'X-Admin-Secret': adminSecret }
+  });
+  const data = await res.json();
+  allIssues = Array.isArray(data) ? data : [];
+  renderIssues();
+}
+
+function filterIssues() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = q
+    ? allIssues.filter(i => i.title.toLowerCase().includes(q) || (i.body || '').toLowerCase().includes(q))
+    : allIssues;
+  renderIssueList(filtered);
+}
+
+function renderIssues() {
+  renderIssueList(allIssues);
+}
+
+function renderIssueList(issues) {
+  const el = document.getElementById('issue-list-area');
+  if (!issues.length) {
+    el.innerHTML = '<div class="empty-msg">제출된 자료가 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="issue-list">${issues.map(issue => {
+    const region = extractSection(issue.body, '관련 지역') || '';
+    const type   = extractSection(issue.body, '자료 종류') || '';
+    const date   = extractSection(issue.body, '자료 연도') || '';
+    const sub    = (issue.body || '').match(/^제출자: (.+)$/m)?.[1] || '익명';
+    const badge  = issue.state === 'open'
+      ? '<span class="badge badge-open">미처리</span>'
+      : '<span class="badge badge-closed">완료</span>';
+    return `<div class="issue-card" onclick="openModal(${issue.number})">
+      <div class="issue-num">#${issue.number}</div>
+      <div class="issue-body">
+        <div class="issue-title">${issue.title.replace('[자료 제출] ','')}</div>
+        <div class="issue-meta">
+          ${badge}
+          ${region ? `<span>📍 ${region}</span>` : ''}
+          ${type ? `<span>📄 ${type}</span>` : ''}
+          ${date ? `<span>📅 ${date}</span>` : ''}
+          <span>👤 ${sub}</span>
+          <span>${timeAgo(issue.created_at)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ─── 모달 ─────────────────────────────────────────────────
+function openModal(num) {
+  const issue = allIssues.find(i => i.number === num);
+  if (!issue) return;
+  currentIssue = issue;
+  rejectBoxOpen = false;
+  mdEditorOpen = false;
+
+  const body = issue.body || '';
+  document.getElementById('modal-title').textContent = issue.title.replace('[자료 제출] ', '');
+
+  // 필드 파싱
+  const fields = [
+    { label: '자료 종류', key: '자료 종류' },
+    { label: '연도', key: '자료 연도' },
+    { label: '관련 지역', key: '관련 지역', full: true },
+    { label: '관련 인물·사건', key: '관련 인물·사건', full: true },
+    { label: '출처·소장처', key: '자료 출처·소장처', full: true },
+    { label: '설명·메모', key: '설명·메모', full: true },
+  ];
+  const submitter = body.match(/^제출자: (.+)$/m)?.[1] || '익명';
+
+  document.getElementById('modal-fields').innerHTML = `
+    ${fields.map(f => {
+      const val = extractSection(body, f.key) || '(없음)';
+      return `<div class="field-item${f.full ? ' field-full' : ''}">
+        <div class="field-label">${f.label}</div>
+        <div class="field-value">${val.replace(/\n/g,'<br>')}</div>
+      </div>`;
+    }).join('')}
+    <div class="field-item">
+      <div class="field-label">제출자</div>
+      <div class="field-value">${submitter}</div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">GitHub 이슈</div>
+      <div class="field-value"><a href="${issue.html_url}" target="_blank" style="color:var(--blue)">#${issue.number} 열기 →</a></div>
+    </div>
+  `;
+
+  // 첨부 파일 파싱 (R2 URL 포함)
+  const fileSection = extractSection(body, '첨부 파일 목록');
+  const attachHtml = buildAttachments(fileSection);
+  document.getElementById('modal-attachments').innerHTML = attachHtml
+    ? `<h3>첨부 파일</h3><div class="attachment-grid">${attachHtml}</div>`
+    : '';
+
+  // 경로 자동 추천
+  const region = extractSection(body, '관련 지역') || '';
+  const autoFolder = regionToFolder(region);
+  const autoFilename = (issue.title.replace('[자료 제출] ','').replace(/[\/\\:*?"<>|]/g,'_').slice(0,60)) + '.md';
+  document.getElementById('field-folder').value = autoFolder;
+  document.getElementById('field-filename').value = autoFilename;
+
+  // md 미리보기
+  document.getElementById('md-editor').style.display = 'none';
+  document.querySelector('.md-preview-toggle').textContent = '▶ md 내용 직접 편집';
+  document.getElementById('md-editor').value = buildAutoMd(issue);
+
+  // 거부 초기화
+  document.getElementById('reject-reason').style.display = 'none';
+  document.getElementById('reject-confirm').style.display = 'none';
+  document.getElementById('reject-reason').value = '';
+  document.getElementById('action-result').textContent = '';
+  document.getElementById('action-result').className = 'action-result';
+  document.getElementById('btn-approve').disabled = false;
+  document.getElementById('btn-reject').disabled = false;
+
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function buildAttachments(fileSection) {
+  if (!fileSection) return '';
+  const lines = fileSection.split('\n').filter(l => l.trim().startsWith('-'));
+  return lines.map(line => {
+    // 마크다운 이미지 형태: - ![이름](URL)
+    const imgMatch = line.match(/!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/);
+    if (imgMatch) {
+      return `<div class="attachment-item">
+        <img src="${imgMatch[2]}" alt="${imgMatch[1]}" onclick="openFullscreen('${imgMatch[2]}')">
+        <a href="${imgMatch[2]}" target="_blank">${imgMatch[1]}</a>
+      </div>`;
+    }
+    // 마크다운 링크: - [이름](URL)
+    const linkMatch = line.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
+    if (linkMatch) {
+      const isPdf = linkMatch[2].toLowerCase().endsWith('.pdf') || linkMatch[1].toLowerCase().endsWith('.pdf');
+      return `<div class="attachment-item">
+        <a href="${linkMatch[2]}" target="_blank">${isPdf ? '📄' : '📎'} ${linkMatch[1]}</a>
+      </div>`;
+    }
+    // 일반 텍스트 (구버전 - 파일명만)
+    const text = line.replace(/^-\s*/, '');
+    return `<div class="attachment-item"><span style="color:var(--muted);font-size:13px;">📎 ${text}</span></div>`;
+  }).join('');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-backdrop')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modal-backdrop').classList.remove('open');
+  document.body.style.overflow = '';
+  currentIssue = null;
+}
+
+// ─── 액션 ─────────────────────────────────────────────────
+function toggleMdEditor() {
+  mdEditorOpen = !mdEditorOpen;
+  document.getElementById('md-editor').style.display = mdEditorOpen ? 'block' : 'none';
+  document.querySelector('.md-preview-toggle').textContent = mdEditorOpen ? '▼ md 편집 닫기' : '▶ md 내용 직접 편집';
+}
+
+function toggleRejectBox() {
+  rejectBoxOpen = !rejectBoxOpen;
+  document.getElementById('reject-reason').style.display = rejectBoxOpen ? 'block' : 'none';
+  document.getElementById('reject-confirm').style.display = rejectBoxOpen ? 'block' : 'none';
+}
+
+async function doApprove() {
+  if (!currentIssue) return;
+  const folder   = document.getElementById('field-folder').value.trim();
+  const filename = document.getElementById('field-filename').value.trim();
+  if (!folder || !filename) { alert('폴더 경로와 파일명을 입력해주세요.'); return; }
+
+  document.getElementById('btn-approve').disabled = true;
+  document.getElementById('action-result').textContent = '아카이브에 반영 중...';
+  document.getElementById('action-result').className = 'action-result';
+
+  const md_override = mdEditorOpen ? document.getElementById('md-editor').value : undefined;
+
+  const res = await fetch(`${WORKER_URL}/admin/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+    body: JSON.stringify({ issue_number: currentIssue.number, folder_override: folder, filename_override: filename, md_override }),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById('action-result').className = 'action-result ok';
+    document.getElementById('action-result').innerHTML =
+      `✅ 반영 완료! <code>${data.file_path}</code><br><a href="${data.commit_url}" target="_blank" style="color:var(--blue)">커밋 보기 →</a>`;
+    allIssues = allIssues.filter(i => i.number !== currentIssue.number);
+  } else {
+    document.getElementById('action-result').className = 'action-result err';
+    document.getElementById('action-result').textContent = `❌ 오류: ${data.error}`;
+    document.getElementById('btn-approve').disabled = false;
+  }
+}
+
+async function doReject() {
+  if (!currentIssue) return;
+  const reason = document.getElementById('reject-reason').value.trim();
+  if (!reason) { alert('반려 사유를 입력해주세요.'); return; }
+
+  document.getElementById('btn-reject').disabled = true;
+
+  const res = await fetch(`${WORKER_URL}/admin/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+    body: JSON.stringify({ issue_number: currentIssue.number, reason }),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById('action-result').className = 'action-result ok';
+    document.getElementById('action-result').textContent = '⚠️ 반려 처리 완료.';
+    allIssues = allIssues.filter(i => i.number !== currentIssue.number);
+  } else {
+    document.getElementById('action-result').className = 'action-result err';
+    document.getElementById('action-result').textContent = `❌ 오류: ${data.error}`;
+    document.getElementById('btn-reject').disabled = false;
+  }
+}
+
+// ─── 이미지 전체화면 ──────────────────────────────────────
+function openFullscreen(url) {
+  document.getElementById('fullscreen-img').src = url;
+  document.getElementById('img-fullscreen').classList.add('open');
+}
+function closeFullscreen() {
+  document.getElementById('img-fullscreen').classList.remove('open');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeFullscreen();
+    closeModalDirect();
+  }
+});
+
+// ─── 유틸 ─────────────────────────────────────────────────
+function extractSection(body, heading) {
+  if (!body) return '';
+  const re = new RegExp(`## ${heading}\\s*\\n([\\s\\S]*?)(?=\\n## |\\n---|$)`, 'm');
+  const m = body.match(re);
+  return m ? m[1].trim() : '';
+}
+
+function regionToFolder(region) {
+  if (region.includes('예산')) return '04-지역/충남/예산';
+  if (region.includes('공주')) return '04-지역/충남/공주';
+  if (region.includes('천안') || region.includes('아산')) return '04-지역/충남/천안';
+  if (region.includes('충남')) return '04-지역/충남';
+  if (region.includes('청주') || region.includes('충북')) return '04-지역/충북/청주';
+  if (region.includes('충북')) return '04-지역/충북';
+  if (region.includes('서울') || region.includes('경성')) return '04-지역/서울';
+  return '04-지역/미분류';
+}
+
+function buildAutoMd(issue) {
+  const body = issue.body || '';
+  const title   = extractSection(body, '자료 제목') || issue.title.replace('[자료 제출] ','');
+  const type    = extractSection(body, '자료 종류');
+  const date    = extractSection(body, '자료 연도');
+  const region  = extractSection(body, '관련 지역');
+  const persons = extractSection(body, '관련 인물·사건');
+  const source  = extractSection(body, '자료 출처·소장처');
+  const note    = extractSection(body, '설명·메모');
+  const files   = extractSection(body, '첨부 파일 목록');
+  const sub     = (body.match(/^제출자: (.+)$/m) || [])[1] || '';
+
+  return [
+    `# ${title}`,``,
+    `- **자료 종류**: ${type || '미상'}`,
+    `- **연도**: ${date || '미상'}`,
+    `- **지역**: ${region || '미상'}`,
+    `- **출처**: ${source || '미기재'}`,
+    `- **제출자**: ${sub}`,
+    `- **원본 이슈**: [#${issue.number}](${issue.html_url})`,``,
+    `---`,``,
+    `## 관련 인물·사건`,``,
+    persons || '(미기재)',``,
+    `## 설명·메모`,``,
+    note || '(없음)',``,
+    `## 첨부 파일`,``,
+    files || '(없음)',
+  ].join('\n');
+}
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(diff / 86400000);
+  if (d === 0) return '오늘';
+  if (d === 1) return '어제';
+  if (d < 30) return `${d}일 전`;
+  return new Date(iso).toLocaleDateString('ko-KR');
+}
+</script>
+</body>
+</html>

@@ -109,6 +109,10 @@ jobs:
           if [ -f vault/park_sungil_portrait.jpg ]; then
             cp vault/park_sungil_portrait.jpg quartz/public/park_sungil_portrait.jpg
           fi
+          # 관리자 UI
+          if [ -f vault/admin.html ]; then
+            cp vault/admin.html quartz/public/admin.html
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
