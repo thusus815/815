@@ -815,32 +815,34 @@ async function handleReviewFlag(req: Request, env: Env) {
   };
 
   if (env.GITHUB_TOKEN) {
-    // 기존 검토 라벨 제거 후 새 라벨 부착
-    const oldLabels = ['검토완료', '수정필요', '반려추천', '분류재검토'];
-    for (const lbl of oldLabels) {
-      await fetch(
-        `https://api.github.com/repos/thusus815/815/issues/${issue_number}/labels/${encodeURIComponent(lbl)}`,
-        { method: 'DELETE', headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review' } }
-      ).catch(() => {});  // 라벨이 없으면 404 — 무시
-    }
+    const headers = { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review' };
+    const headersJson = { ...headers, 'Content-Type': 'application/json' };
     const newLabel = labelMap[status];
+    const oldLabels = ['검토완료', '수정필요', '반려추천', '분류재검토'];
+
+    // 기존 라벨 제거(병렬) + 새 라벨 부착(필요 시) + 댓글(필요 시)을 모두 동시 실행
+    const ops: Promise<any>[] = oldLabels.map(lbl =>
+      fetch(
+        `https://api.github.com/repos/thusus815/815/issues/${issue_number}/labels/${encodeURIComponent(lbl)}`,
+        { method: 'DELETE', headers }
+      ).catch(() => {})
+    );
     if (newLabel) {
-      await fetch(
+      ops.push(fetch(
         `https://api.github.com/repos/thusus815/815/issues/${issue_number}/labels`,
-        {
-          method: 'POST',
-          headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-review' },
-          body: JSON.stringify({ labels: [newLabel] }),
-        }
-      );
+        { method: 'POST', headers: headersJson, body: JSON.stringify({ labels: [newLabel] }) }
+      ).catch(() => {}));
     }
     if (note?.trim()) {
-      await fetch(`https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`, {
-        method: 'POST',
-        headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-review' },
-        body: JSON.stringify({ body: `**검토자 (${sess.name}) — ${newLabel || status}**\n\n${note.trim()}` }),
-      });
+      ops.push(fetch(
+        `https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`,
+        { method: 'POST', headers: headersJson, body: JSON.stringify({ body: `**검토자 (${sess.name}) — ${newLabel || status}**\n\n${note.trim()}` }) }
+      ).catch(() => {}));
     }
+
+    // 응답을 빠르게 돌려주고 GitHub API 호출은 백그라운드로 (waitUntil 대용 — 그냥 fire-and-forget)
+    // 다만 oldLabels 제거는 정합성 위해 await
+    await Promise.allSettled(ops);
   }
 
   return Response.json({ ok: true, review: st });

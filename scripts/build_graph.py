@@ -100,6 +100,9 @@ def rel_key(a, b):
 LINK_RE = re.compile(r'\[\[([^\]|#]+)(?:\|[^\]]+)?\]\]')
 YAML_RE = re.compile(r'^---\s*\n(.*?)\n---', re.DOTALL)
 
+# frontmatter에 정의된 관계 필드 (배열 형태) — 이 필드의 값도 엣지로 인식
+RELATION_FIELDS = ['관련인물', '관련학교', '관련사건', '관련기관', '관련지역']
+
 def parse_tags(yaml_text):
     tags = []
     m = re.search(r'^tags\s*:\s*\[([^\]]+)\]', yaml_text, re.MULTILINE)
@@ -110,6 +113,28 @@ def parse_tags(yaml_text):
         if m2:
             tags = re.findall(r'-\s*(.+)', m2.group(1))
     return [t.strip() for t in tags if t.strip()]
+
+def parse_relation_field(yaml_text, field_name):
+    """frontmatter의 '관련인물: [A, B, C]' 같은 배열 필드를 추출."""
+    out = []
+    # 인라인 배열 형식: 관련인물: [A, B, C] 또는 관련인물: ["A", "B"]
+    m = re.search(rf'^{field_name}\s*:\s*\[([^\]]*)\]', yaml_text, re.MULTILINE)
+    if m and m.group(1).strip():
+        out = [t.strip().strip('"\'') for t in m.group(1).split(',')]
+    else:
+        # 블록 배열 형식:
+        #   관련인물:
+        #     - A
+        #     - B
+        m2 = re.search(rf'^{field_name}\s*:\s*\n((?:\s+-\s*.+\n?)+)', yaml_text, re.MULTILINE)
+        if m2:
+            out = re.findall(r'-\s*(.+)', m2.group(1))
+        else:
+            # 단일 값: 관련인물: 홍길동
+            m3 = re.search(rf'^{field_name}\s*:\s*([^\n\[].*)$', yaml_text, re.MULTILINE)
+            if m3 and m3.group(1).strip() and not m3.group(1).strip().startswith('['):
+                out = [m3.group(1).strip().strip('"\'')]
+    return [t.strip() for t in out if t and t.strip()]
 
 def slug(path):
     rel = os.path.relpath(path, VAULT).replace("\\", "/")
@@ -172,17 +197,38 @@ for fpath in md_files:
         continue
     src = slug(fpath)
     targets_in_this_file = []
+
+    def resolve(link_raw):
+        link = unicodedata.normalize("NFC", link_raw.strip())
+        if not link:
+            return None
+        m = slug_by_basename.get(link)
+        if m:
+            return m
+        for nsl in nodes:
+            if nsl == link or nsl.endswith("/" + link):
+                return nsl
+        return None
+
+    # 1) 본문 [[wikilink]] — 인용 횟수 그대로 카운트 (weight 누적)
     for raw in LINK_RE.findall(content):
-        link = unicodedata.normalize("NFC", raw.strip())
-        # 빠른 매칭
-        matched = slug_by_basename.get(link)
-        if not matched:
-            for nsl in nodes:
-                if nsl == link or nsl.endswith("/" + link):
-                    matched = nsl; break
+        matched = resolve(raw)
         if matched and matched != src:
             directed_count[(src, matched)] += 1
             targets_in_this_file.append(matched)
+
+    # 2) frontmatter 관계 필드 — 각 타겟당 1번만 추가 (중복 가중치 방지)
+    yaml_m = YAML_RE.match(content)
+    if yaml_m:
+        already_from_body = set(targets_in_this_file)
+        for fld in RELATION_FIELDS:
+            for raw in parse_relation_field(yaml_m.group(1), fld):
+                matched = resolve(raw)
+                if matched and matched != src and matched not in already_from_body:
+                    directed_count[(src, matched)] += 1
+                    targets_in_this_file.append(matched)
+                    already_from_body.add(matched)
+
     src_links_in_file[fpath] = targets_in_this_file
 
 # ===== 4. 양방향/단방향 판별 + 엣지 통합 =====

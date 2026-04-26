@@ -195,6 +195,52 @@ export function buildMdFromIssue(issue: any): ConvertResult {
       filename = `${title.replace(/[\/\\:*?"<>|]/g, '_').slice(0, 60)}.md`;
   }
 
+  // persons 토큰을 인물·학교·사건·기관으로 분류 (그래프 wikilink 생성용)
+  // build_graph.py가 본문 [[link]]만 엣지로 만드므로, 분류된 토큰을 본문에 [[]]로 삽입.
+  const personTokens: string[] = [];
+  const schoolTokens: string[] = [];
+  const eventTokens: string[] = [];
+  const orgTokens: string[] = [];
+  if (persons && persons !== '(미기재)') {
+    const tokens = persons.split(/[,，、·\n]+/).map(s => s.trim()).filter(Boolean);
+    for (const t of tokens) {
+      // 한자/괄호 제거하여 한글 표기만 추출
+      const k = t.replace(/\([^)]*\)/g, '').replace(/[一-龥]+/g, '').trim();
+      if (!k) continue;
+      if (/(학교|고보|고등학교|보습)/.test(k)) schoolTokens.push(k);
+      else if (/(운동|항쟁|시위|맹휴|동맹휴학|사건|격문)/.test(k)) eventTokens.push(k);
+      else if (/(회|단|협의|동맹|위원|조합|총독부|보안|경찰)/.test(k)) orgTokens.push(k);
+      else if (/^[가-힣]{2,5}$/.test(k)) personTokens.push(k);
+      else orgTokens.push(k);  // 분류 모호 시 기관 카테고리로
+    }
+  }
+
+  // 본문에 등장하는 인물 한자명을 한글로 추출 (예: "박창신(朴昌信)" → "박창신")
+  const inlinePersons = new Set<string>();
+  for (const m of (note || '').matchAll(/([가-힣]{2,5})\s*\([一-龥\s]{2,5}\)/g)) {
+    if (m[1] !== koName) inlinePersons.add(m[1]);
+  }
+  for (const p of inlinePersons) if (!personTokens.includes(p)) personTokens.push(p);
+
+  // 학교 검출 결과 통합 — '충남 당진군 면천면 면천공립보통학교' 같은 긴 표기에서 마지막 학교명만 추출
+  if (school) {
+    const cleanSchool = (school.match(/[가-힣]{2,8}(?:공립|공립보통|공립농업|공립상업)?(?:보통|국민|소|중|고등|상업|농업(?:보습)?|보습)?(?:학교|고등학교|고보)/g) || []).pop() || school;
+    if (cleanSchool && !schoolTokens.includes(cleanSchool)) schoolTokens.unshift(cleanSchool);
+  }
+
+  // 그래프 카테고리 친화 tags (build_graph.py categorize() 매칭)
+  const categoryTag = kind === '인물' ? '항일인물'
+                    : kind === '학교' ? '학교'
+                    : kind === '사건' ? '사건'
+                    : kind === '단체' ? '단체'
+                    : kind === '신문' || kind === '판결문' ? '문헌'
+                    : kind === '지역' ? '지역'
+                    : '기타';
+
+  // 연도 태그 (1919.3.1 → 연도/1919)
+  const yearMatch = (date || '').match(/\d{4}/) || (note || '').match(/(\d{4})년/);
+  const yearTag = yearMatch ? `연도/${yearMatch[1] || yearMatch[0]}` : null;
+
   const fm: Record<string, any> = {
     type: kind === '인물' ? '인물' : kind === '학교' ? '학교' : kind === '사건' ? '사건' : kind === '단체' ? '단체' : kind === '신문' || kind === '판결문' ? '문헌' : '지역',
     side: kind === '인물' ? '항일' : undefined,
@@ -207,9 +253,11 @@ export function buildMdFromIssue(issue: any): ConvertResult {
     훈격: honor || undefined,
     운동계열: movementType || undefined,
     소속: school || undefined,
-    관련학교: school || undefined,
+    관련학교: schoolTokens.length ? schoolTokens : undefined,
     관련지역: region || undefined,
-    관련인물: persons && persons !== '(미기재)' ? persons.split(/[,，、·\s]+/).filter(s => /[가-힣]{2,5}/.test(s)).slice(0, 20) : undefined,
+    관련인물: personTokens.length ? personTokens : undefined,
+    관련사건: eventTokens.length ? eventTokens : undefined,
+    관련기관: orgTokens.length ? orgTokens : undefined,
     자료종류: type || undefined,
     source_type: normalizeSourceType(type),
     source: sourceUrl ? '제출자료' : (source || '제출자료'),
@@ -220,7 +268,7 @@ export function buildMdFromIssue(issue: any): ConvertResult {
     원본이슈: `#${issue.number}`,
     원본이슈_url: issue.html_url,
     생성일: new Date().toISOString().slice(0, 10),
-    tags: ['사용자제출', kind, ...(region ? [region.replace(/\s.*/, '')] : [])],
+    tags: ['사용자제출', categoryTag, ...(yearTag ? [yearTag] : []), ...(region ? [region.replace(/\s.*/, '')] : [])],
   };
 
   const lines: string[] = [];
@@ -265,6 +313,42 @@ export function buildMdFromIssue(issue: any): ConvertResult {
     lines.push(note || '(없음)');
     lines.push('');
   }
+  // ── AGENTS.md §4-3 표준 섹션: 위키링크 (그래프 엣지 생성용) ──
+  // build_graph.py가 본문 [[link]]만 엣지로 인식하므로, 관계를 [[]]로 표기.
+  // 노트 미존재 시 build_graph가 자동으로 무시 (ghost 안 만듦).
+  if (personTokens.length) {
+    lines.push('## 관련 인물');
+    lines.push('');
+    for (const p of personTokens) lines.push(`- [[${p}]]`);
+    lines.push('');
+  }
+  if (schoolTokens.length) {
+    lines.push('## 관련 학교');
+    lines.push('');
+    for (const s of schoolTokens) lines.push(`- [[${s}]]`);
+    lines.push('');
+  }
+  if (eventTokens.length) {
+    lines.push('## 관련 사건');
+    lines.push('');
+    for (const e of eventTokens) lines.push(`- [[${e}]]`);
+    lines.push('');
+  }
+  if (orgTokens.length) {
+    lines.push('## 관련 기관');
+    lines.push('');
+    for (const o of orgTokens) lines.push(`- [[${o}]]`);
+    lines.push('');
+  }
+  // 지역 백링크 — region이 정확히 시군 단위인 경우만 [[]]
+  const regionMatch = region && region.match(/([가-힣]{2,3}(?:시|군|구|도))/);
+  if (regionMatch) {
+    lines.push('## 관련 지역');
+    lines.push('');
+    lines.push(`- [[${regionMatch[1]}]]`);
+    lines.push('');
+  }
+
   lines.push('## 첨부 파일');
   lines.push('');
   lines.push(files || '(없음)');
