@@ -113,6 +113,10 @@ jobs:
           if [ -f vault/admin.html ]; then
             cp vault/admin.html quartz/public/admin.html
           fi
+          # 검토자 UI (김남균 선생 등 외부 검토자)
+          if [ -f vault/review.html ]; then
+            cp vault/review.html quartz/public/review.html
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

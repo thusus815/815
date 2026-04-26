@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 815 Archive Chat Worker
  *
  * Cloudflare Workers AI 기반 GraphRAG 챗봇.
@@ -18,6 +18,7 @@
  */
 
 import { getPersona, PERSONAS } from "./personas";
+import { buildMdFromIssue } from "./converter";
 
 interface Env {
   AI: Ai;
@@ -26,8 +27,10 @@ interface Env {
   RELATIONS_URL: string;
   GITHUB_TOKEN?: string;
   SUBMIT_AUTH: KVNamespace;
+  REVIEW_STATE: KVNamespace;
   ATTACHMENTS: R2Bucket;
   ADMIN_SECRET?: string;
+  REVIEWER_SECRET?: string;  // 콤마로 다중 비밀번호 (검토자별)
   GEMINI_API_KEY?: string;
 }
 
@@ -432,71 +435,10 @@ function checkAdmin(req: Request, env: Env): boolean {
   return env.ADMIN_SECRET.split(',').map(s => s.trim()).includes(secret);
 }
 
-// 이슈 본문에서 섹션 값 추출
-function parseSection(body: string, heading: string): string {
-  const re = new RegExp(`## ${heading}\\s*\\n([\\s\\S]*?)(?=\\n## |\\n---|-$)`, 'm');
-  const m = body.match(re);
-  return m ? m[1].trim() : '';
-}
-
-// 지역 → 폴더 경로 자동 매핑
-function regionToFolder(region: string): string {
-  const r = region.trim();
-  if (r.includes('예산')) return '04-지역/충남/예산';
-  if (r.includes('공주')) return '04-지역/충남/공주';
-  if (r.includes('천안') || r.includes('아산')) return '04-지역/충남/천안';
-  if (r.includes('충남')) return '04-지역/충남';
-  if (r.includes('청주') || r.includes('충북')) return '04-지역/충북/청주';
-  if (r.includes('충북')) return '04-지역/충북';
-  if (r.includes('서울') || r.includes('경성')) return '04-지역/서울';
-  return '04-지역/미분류';
-}
-
-// 이슈 본문 → md 파일 내용 자동 생성
-function buildMdFromIssue(issue: any): { md: string; folder: string; filename: string } {
-  const body: string = issue.body || '';
-  const title    = parseSection(body, '자료 제목') || issue.title.replace('[자료 제출] ', '');
-  const type     = parseSection(body, '자료 종류');
-  const date     = parseSection(body, '자료 연도');
-  const region   = parseSection(body, '관련 지역');
-  const persons  = parseSection(body, '관련 인물·사건');
-  const source   = parseSection(body, '자료 출처·소장처');
-  const note     = parseSection(body, '설명·메모');
-  const files    = parseSection(body, '첨부 파일 목록');
-
-  const submitterLine = (body.match(/^제출자: (.+)$/m) || [])[1] || '';
-
-  const folder   = regionToFolder(region);
-  const safeTitle = title.replace(/[\/\\:*?"<>|]/g, '_').slice(0, 60);
-  const filename  = `${safeTitle}.md`;
-
-  const md = [
-    `# ${title}`,
-    ``,
-    `- **자료 종류**: ${type || '미상'}`,
-    `- **연도**: ${date || '미상'}`,
-    `- **지역**: ${region || '미상'}`,
-    `- **출처**: ${source || '미기재'}`,
-    `- **제출자**: ${submitterLine}`,
-    `- **원본 이슈**: [#${issue.number}](${issue.html_url})`,
-    ``,
-    `---`,
-    ``,
-    `## 관련 인물·사건`,
-    ``,
-    persons || '(미기재)',
-    ``,
-    `## 설명·메모`,
-    ``,
-    note || '(없음)',
-    ``,
-    `## 첨부 파일`,
-    ``,
-    files || '(없음)',
-  ].join('\n');
-
-  return { md, folder, filename };
-}
+// ────────────────────────────────────────────────────────────
+// 변환 로직(parseSection·regionToFolder·buildMdFromIssue 등)은 converter.ts로 분리.
+// 아래는 dead code (이전 인라인 정의). 삭제 마커 시작.
+// ────────────────────────────────────────────────────────────
 
 async function handleAdminIssues(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
@@ -706,10 +648,208 @@ async function handleAdminAnalyze(req: Request, env: Env) {
   return Response.json({ ok: true, analysis: (response as any).response });
 }
 
+// ─── 검토자(Reviewer) — 자료 검토만 가능, 승인/커밋 권한 없음 ─────
+//
+// REVIEWER_SECRET 형식: "김남균:secret_for_kim,홍길동:secret_for_hong"
+// 매칭되는 이름이 토큰 세션에 기록되고 모든 검토 행위에 reviewer 식별로 사용.
+
+interface ReviewerSession { name: string; expires: number; }
+
+function parseReviewerSecrets(env: Env): Array<{ name: string; secret: string }> {
+  if (!env.REVIEWER_SECRET) return [];
+  return env.REVIEWER_SECRET.split(',').map(s => {
+    const [n, sec] = s.split(':').map(x => x.trim());
+    return { name: n, secret: sec };
+  }).filter(x => x.name && x.secret);
+}
+
+async function authReviewer(req: Request, env: Env): Promise<ReviewerSession | null> {
+  const auth = req.headers.get('Authorization') || '';
+  const m = auth.match(/^Bearer\s+(\S+)$/);
+  if (!m) return null;
+  const raw = await env.REVIEW_STATE.get(`session:${m[1]}`);
+  if (!raw) return null;
+  const sess = JSON.parse(raw) as ReviewerSession;
+  if (sess.expires < Date.now()) return null;
+  return sess;
+}
+
+function randomToken(): string {
+  const buf = new Uint8Array(32);
+  crypto.getRandomValues(buf);
+  return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function handleReviewLogin(req: Request, env: Env) {
+  const { password } = await req.json() as { password?: string };
+  if (!password) return Response.json({ error: 'password required' }, { status: 400 });
+
+  const reviewers = parseReviewerSecrets(env);
+  const match = reviewers.find(r => r.secret === password.trim());
+  if (!match) return Response.json({ error: '비밀번호가 일치하지 않습니다.' }, { status: 401 });
+
+  const token = randomToken();
+  const expires = Date.now() + 7 * 24 * 60 * 60 * 1000;  // 7일
+  await env.REVIEW_STATE.put(
+    `session:${token}`,
+    JSON.stringify({ name: match.name, expires }),
+    { expirationTtl: 7 * 24 * 60 * 60 },
+  );
+  return Response.json({ ok: true, token, reviewer_name: match.name, expires });
+}
+
+interface ReviewState {
+  status: 'pending' | 'ok' | 'edit_needed' | 'reject_suggested' | 'reroute_suggested';
+  comments: Array<{ reviewer: string; text: string; ts: number }>;
+  last_reviewer?: string;
+  updated_at?: number;
+}
+
+async function getReviewState(env: Env, num: number): Promise<ReviewState> {
+  const raw = await env.REVIEW_STATE.get(`review:${num}`);
+  if (!raw) return { status: 'pending', comments: [] };
+  return JSON.parse(raw) as ReviewState;
+}
+
+async function putReviewState(env: Env, num: number, st: ReviewState) {
+  await env.REVIEW_STATE.put(`review:${num}`, JSON.stringify(st));
+}
+
+async function handleReviewIssues(req: Request, env: Env) {
+  const sess = await authReviewer(req, env);
+  if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
+
+  // 공개 GitHub API로 이슈 목록 가져오기 (검토자는 GH 토큰 없어도 됨)
+  const ghRes = await fetch(
+    'https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=all&per_page=100',
+    { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review' } }
+  );
+  if (!ghRes.ok) return Response.json({ error: 'GitHub API 오류' }, { status: 502 });
+  const issues = await ghRes.json() as any[];
+
+  // 각 이슈에 자동 분류 미리보기 + 검토 상태 부착
+  const enriched = await Promise.all(issues.map(async (iss) => {
+    const preview = iss.body ? buildMdFromIssue(iss) : null;
+    const st = await getReviewState(env, iss.number);
+    return {
+      number: iss.number,
+      title: iss.title,
+      state: iss.state,
+      created_at: iss.created_at,
+      labels: (iss.labels || []).map((l: any) => l.name),
+      body: iss.body,
+      html_url: iss.html_url,
+      preview: preview ? {
+        kind: preview.kind,
+        folder: preview.folder,
+        filename: preview.filename,
+        md: preview.md,
+      } : null,
+      review: st,
+    };
+  }));
+
+  return Response.json({ ok: true, reviewer: sess.name, issues: enriched });
+}
+
+async function handleReviewComment(req: Request, env: Env) {
+  const sess = await authReviewer(req, env);
+  if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
+
+  const { issue_number, text } = await req.json() as { issue_number?: number; text?: string };
+  if (!issue_number || !text?.trim()) return Response.json({ error: 'issue_number, text required' }, { status: 400 });
+
+  // KV에 검토 코멘트 추가
+  const st = await getReviewState(env, issue_number);
+  st.comments.push({ reviewer: sess.name, text: text.trim(), ts: Date.now() });
+  st.last_reviewer = sess.name;
+  st.updated_at = Date.now();
+  await putReviewState(env, issue_number, st);
+
+  // GitHub 이슈에도 댓글 (워커의 GITHUB_TOKEN으로 — 검토자는 직접 GH 권한 없음)
+  if (env.GITHUB_TOKEN) {
+    await fetch(`https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`, {
+      method: 'POST',
+      headers: {
+        Authorization: `token ${env.GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'my-31-review',
+      },
+      body: JSON.stringify({ body: `**검토자 의견 (${sess.name})**\n\n${text.trim()}` }),
+    });
+  }
+
+  return Response.json({ ok: true, review: st });
+}
+
+async function handleReviewFlag(req: Request, env: Env) {
+  const sess = await authReviewer(req, env);
+  if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
+
+  const { issue_number, status, note } = await req.json() as {
+    issue_number?: number;
+    status?: ReviewState['status'];
+    note?: string;
+  };
+  if (!issue_number || !status) return Response.json({ error: 'issue_number, status required' }, { status: 400 });
+
+  const validStatuses: ReviewState['status'][] = ['pending', 'ok', 'edit_needed', 'reject_suggested', 'reroute_suggested'];
+  if (!validStatuses.includes(status)) return Response.json({ error: 'invalid status' }, { status: 400 });
+
+  // KV 업데이트
+  const st = await getReviewState(env, issue_number);
+  st.status = status;
+  st.last_reviewer = sess.name;
+  st.updated_at = Date.now();
+  if (note?.trim()) st.comments.push({ reviewer: sess.name, text: `[${status}] ${note.trim()}`, ts: Date.now() });
+  await putReviewState(env, issue_number, st);
+
+  // GitHub 라벨 토글
+  const labelMap: Record<ReviewState['status'], string | null> = {
+    'pending': null,
+    'ok': '검토완료',
+    'edit_needed': '수정필요',
+    'reject_suggested': '반려추천',
+    'reroute_suggested': '분류재검토',
+  };
+
+  if (env.GITHUB_TOKEN) {
+    // 기존 검토 라벨 제거 후 새 라벨 부착
+    const oldLabels = ['검토완료', '수정필요', '반려추천', '분류재검토'];
+    for (const lbl of oldLabels) {
+      await fetch(
+        `https://api.github.com/repos/thusus815/815/issues/${issue_number}/labels/${encodeURIComponent(lbl)}`,
+        { method: 'DELETE', headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review' } }
+      ).catch(() => {});  // 라벨이 없으면 404 — 무시
+    }
+    const newLabel = labelMap[status];
+    if (newLabel) {
+      await fetch(
+        `https://api.github.com/repos/thusus815/815/issues/${issue_number}/labels`,
+        {
+          method: 'POST',
+          headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-review' },
+          body: JSON.stringify({ labels: [newLabel] }),
+        }
+      );
+    }
+    if (note?.trim()) {
+      await fetch(`https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`, {
+        method: 'POST',
+        headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'my-31-review' },
+        body: JSON.stringify({ body: `**검토자 (${sess.name}) — ${newLabel || status}**\n\n${note.trim()}` }),
+      });
+    }
+  }
+
+  return Response.json({ ok: true, review: st });
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret, Authorization",
 };
 
 export default {
@@ -741,6 +881,14 @@ export default {
         res = await handleAdminOcr(req, env);
       } else if (url.pathname === "/admin/analyze" && req.method === "POST") {
         res = await handleAdminAnalyze(req, env);
+      } else if (url.pathname === "/review/login" && req.method === "POST") {
+        res = await handleReviewLogin(req, env);
+      } else if (url.pathname === "/review/issues" && req.method === "GET") {
+        res = await handleReviewIssues(req, env);
+      } else if (url.pathname === "/review/comment" && req.method === "POST") {
+        res = await handleReviewComment(req, env);
+      } else if (url.pathname === "/review/flag" && req.method === "POST") {
+        res = await handleReviewFlag(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))

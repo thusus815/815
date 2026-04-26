@@ -12,6 +12,16 @@ binding = "AI"
 binding = "SUBMIT_AUTH"
 id = "aed9da2e0ee54da58651dd3d1305b217"
 
+# 검토자(김남균 선생 등) 세션·검토상태 저장
+[[kv_namespaces]]
+binding = "REVIEW_STATE"
+id = "feefc4c39785401482fe51fdcda81b3a"
+
+# 첨부파일 저장 R2 버킷
+[[r2_buckets]]
+binding = "ATTACHMENTS"
+bucket_name = "archive-attachments"
+
 [vars]
 SITE_ORIGIN = "https://thusus815.github.io"
 GRAPH_DATA_URL = "https://thusus815.github.io/815/graph_data.json"
