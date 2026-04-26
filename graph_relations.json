@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-04-20T23:50:07.134865",
-  "provider": "mock",
+  "generated_at": "2026-04-26T08:12:38.295913",
+  "provider": "github",
   "stats": {
-    "total_notes": 1720,
-    "processed": 5,
-    "skipped_cache": 1,
-    "failed": 0,
-    "relations": 5
+    "total_notes": 1729,
+    "processed": 60,
+    "skipped_cache": 16,
+    "failed": 1653,
+    "relations": 441
   },
   "relations": [
     {
@@ -15,15 +15,7 @@
       "object": "예시인물B",
       "confidence": 0.85,
       "source_note": "AGENTS",
-      "from_cache": false
-    },
-    {
-      "subject": "예시인물A",
-      "predicate": "동지",
-      "object": "예시인물B",
-      "confidence": 0.85,
-      "source_note": "GEPHI_가이드",
-      "from_cache": false
+      "from_cache": true
     },
     {
       "subject": "예시인물A",
@@ -31,7 +23,7 @@
       "object": "예시인물B",
       "confidence": 0.85,
       "source_note": "index",
-      "from_cache": false
+      "from_cache": true
     },
     {
       "subject": "예시인물A",
@@ -39,7 +31,7 @@
       "object": "예시인물B",
       "confidence": 0.85,
       "source_note": "START",
-      "from_cache": false
+      "from_cache": true
     },
     {
       "subject": "예시인물A",
@@ -47,6 +39,3502 @@
       "object": "예시인물B",
       "confidence": 0.85,
       "source_note": "충북_독립운동_흐름_인덱스",
+      "from_cache": true
+    },
+    {
+      "subject": "예시인물A",
+      "predicate": "동지",
+      "object": "예시인물B",
+      "confidence": 0.85,
+      "source_note": "GEPHI_가이드",
+      "from_cache": true
+    },
+    {
+      "subject": "충주공립보통학교 부설 충주간이농업학교",
+      "predicate": "참여한다",
+      "object": "유석보",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "충주공립보통학교 부설 충주간이농업학교",
+      "predicate": "참여한다",
+      "object": "오언영",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "충주공립보통학교 부설 충주간이농업학교",
+      "predicate": "참여한다",
+      "object": "장천석",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "충주 신니면 용원장터",
+      "predicate": "참여한다",
+      "object": "단경옥",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "충주 신니면 용원장터",
+      "predicate": "참여한다",
+      "object": "이강렴",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "충주공립보통학교 부설 충주간이농업학교",
+      "predicate": "발생한다",
+      "object": "만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "충주 신니면 용원장터",
+      "predicate": "발생한다",
+      "object": "만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/충주시",
+      "from_cache": false
+    },
+    {
+      "subject": "영동공립보통학교",
+      "predicate": "참여한다",
+      "object": "이흥연·이성주 목판 시위",
+      "confidence": 0.9,
+      "source_note": "04-지역/영동군",
+      "from_cache": false
+    },
+    {
+      "subject": "영동공립보통학교",
+      "predicate": "참여한다",
+      "object": "6·10 만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/영동군",
+      "from_cache": false
+    },
+    {
+      "subject": "충청북도",
+      "predicate": "배출한다",
+      "object": "친일반민족행위자",
+      "confidence": 0.9,
+      "source_note": "04-지역/충청북도",
+      "from_cache": false
+    },
+    {
+      "subject": "충청북도",
+      "predicate": "배출한다",
+      "object": "항일독립투사",
+      "confidence": 0.9,
+      "source_note": "04-지역/충청북도",
+      "from_cache": false
+    },
+    {
+      "subject": "충북 학생 항일 독립투쟁사",
+      "predicate": "저자",
+      "object": "김남균",
+      "confidence": 0.9,
+      "source_note": "04-지역/충청북도",
+      "from_cache": false
+    },
+    {
+      "subject": "청주공립농업학교",
+      "predicate": "참여한다",
+      "object": "충북 학생 만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/청주시",
+      "from_cache": false
+    },
+    {
+      "subject": "청주 내수공립보통학교",
+      "predicate": "참여한다",
+      "object": "한봉수 의병장과 만세시위",
+      "confidence": 0.9,
+      "source_note": "04-지역/청주시",
+      "from_cache": false
+    },
+    {
+      "subject": "청주 내수공립보통학교",
+      "predicate": "참여한다",
+      "object": "일본인 교사 배척 동맹휴학",
+      "confidence": 0.9,
+      "source_note": "04-지역/청주시",
+      "from_cache": false
+    },
+    {
+      "subject": "진천공립보통학교",
+      "predicate": "참여한다",
+      "object": "1919.3.15 만세시위",
+      "confidence": 0.9,
+      "source_note": "04-지역/진천군",
+      "from_cache": false
+    },
+    {
+      "subject": "1919.3.15 만세시위",
+      "predicate": "체포한다",
+      "object": "22명",
+      "confidence": 0.9,
+      "source_note": "04-지역/진천군",
+      "from_cache": false
+    },
+    {
+      "subject": "1919.3.15 만세시위",
+      "predicate": "구속한다",
+      "object": "14명",
+      "confidence": 0.9,
+      "source_note": "04-지역/진천군",
+      "from_cache": false
+    },
+    {
+      "subject": "증평 도안공립보통학교",
+      "predicate": "배척",
+      "object": "일본인 교장",
+      "confidence": 0.9,
+      "source_note": "04-지역/증평군",
+      "from_cache": false
+    },
+    {
+      "subject": "괴산공립보통학교",
+      "predicate": "참여한다",
+      "object": "충북 최초의 만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/괴산군",
+      "from_cache": false
+    },
+    {
+      "subject": "곽용순",
+      "predicate": "체포된다",
+      "object": "괴산공립보통학교",
+      "confidence": 0.9,
+      "source_note": "04-지역/괴산군",
+      "from_cache": false
+    },
+    {
+      "subject": "괴산청안공립보통학교",
+      "predicate": "체포된다",
+      "object": "7명",
+      "confidence": 0.9,
+      "source_note": "04-지역/괴산군",
+      "from_cache": false
+    },
+    {
+      "subject": "조선민족",
+      "predicate": "배척",
+      "object": "괴산공립보통학교 교장",
+      "confidence": 0.7,
+      "source_note": "04-지역/괴산군",
+      "from_cache": false
+    },
+    {
+      "subject": "옥천공립보통학교",
+      "predicate": "참여한다",
+      "object": "독립만세",
+      "confidence": 0.9,
+      "source_note": "04-지역/옥천군",
+      "from_cache": false
+    },
+    {
+      "subject": "제천공립보통학교",
+      "predicate": "참여한다",
+      "object": "6·10 만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/제천시",
+      "from_cache": false
+    },
+    {
+      "subject": "박육경",
+      "predicate": "체포된다",
+      "object": "6·10 만세항쟁",
+      "confidence": 0.9,
+      "source_note": "04-지역/제천시",
+      "from_cache": false
+    },
+    {
+      "subject": "제천공립보통학교",
+      "predicate": "체포한다",
+      "object": "6명",
+      "confidence": 0.9,
+      "source_note": "04-지역/제천시",
+      "from_cache": false
+    },
+    {
+      "subject": "제천공립보통학교",
+      "predicate": "참여한다",
+      "object": "전교 432명 중 399명",
+      "confidence": 0.9,
+      "source_note": "04-지역/제천시",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "참여한다",
+      "object": "관료 및 언론 활동",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "참여한다",
+      "object": "대한협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "역임한다",
+      "object": "조선총독부 중추원 참의",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "협력한다",
+      "object": "유교 단체",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "수상한다",
+      "object": "조선총독부시정25주년 기념표창",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "수상한다",
+      "object": "일본 기원절 기념표창",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "김병규",
+      "predicate": "활동한다",
+      "object": "중추원 시정연구회",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "윤덕영",
+      "predicate": "관계맺는다",
+      "object": "조선총독부",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "한상룡",
+      "predicate": "활동한다",
+      "object": "중추원 시정연구회",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "한규복",
+      "predicate": "활동한다",
+      "object": "중추원 시정연구회",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "이진호",
+      "predicate": "활동한다",
+      "object": "중추원 시정연구회",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "유정수",
+      "predicate": "활동한다",
+      "object": "중추원 시정연구회",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병규",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "재직한다",
+      "object": "조선총독부",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "협력한다",
+      "object": "일제의 침략 전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "찬양한다",
+      "object": "일본 제국주의 식민 통치",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "수여받는다",
+      "object": "훈6등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "참여한다",
+      "object": "중일전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "역임한다",
+      "object": "운산군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "역임한다",
+      "object": "황해도 도이사관",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "역임한다",
+      "object": "전라북도 도이사관",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "역임한다",
+      "object": "충청남도 참여관",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "역임한다",
+      "object": "전라남도 도사무관",
+      "confidence": 0.9,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "동지",
+      "object": "강동진",
+      "confidence": 0.7,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "동지",
+      "object": "박중양",
+      "confidence": 0.7,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "동지",
+      "object": "유홍순",
+      "confidence": 0.7,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "동지",
+      "object": "이규완",
+      "confidence": 0.7,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "임문석",
+      "predicate": "동지",
+      "object": "이두황",
+      "confidence": 0.7,
+      "source_note": "01-인물/임문석",
+      "from_cache": false
+    },
+    {
+      "subject": "김재환",
+      "predicate": "임명된다",
+      "object": "조선총독부 군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/김재환",
+      "from_cache": false
+    },
+    {
+      "subject": "김재환",
+      "predicate": "참여한다",
+      "object": "정치 활동",
+      "confidence": 0.7,
+      "source_note": "01-인물/김재환",
+      "from_cache": false
+    },
+    {
+      "subject": "김재환",
+      "predicate": "임명된다",
+      "object": "조선총독부 중추원 참의",
+      "confidence": 0.9,
+      "source_note": "01-인물/김재환",
+      "from_cache": false
+    },
+    {
+      "subject": "김재환",
+      "predicate": "수행한다",
+      "object": "자문기구의 역할",
+      "confidence": 0.9,
+      "source_note": "01-인물/김재환",
+      "from_cache": false
+    },
+    {
+      "subject": "김재환",
+      "predicate": "협력한다",
+      "object": "일제의 식민통치",
+      "confidence": 0.7,
+      "source_note": "01-인물/김재환",
+      "from_cache": false
+    },
+    {
+      "subject": "한일합병",
+      "predicate": "영향을 준다",
+      "object": "김재환",
+      "confidence": 0.7,
+      "source_note": "01-인물/김재환",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "참여한다",
+      "object": "만주사변",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "탄압한다",
+      "object": "항일 세력",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "협력한다",
+      "object": "일제",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "수여받는다",
+      "object": "만주국 국공로장",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "수여받는다",
+      "object": "만주사변 종군기장",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "역임한다",
+      "object": "만주국 경무청 고위직",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "결성한다",
+      "object": "의용치안단",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "홍순봉",
+      "predicate": "결성한다",
+      "object": "흥아청년구락부",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "유홍순",
+      "predicate": "동지",
+      "object": "홍순봉",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍순봉",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "역임한다",
+      "object": "함경남도 영흥군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "역임한다",
+      "object": "안변군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "역임한다",
+      "object": "참여관",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "역임한다",
+      "object": "전라남도지사",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "역임한다",
+      "object": "전라북도지사",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "역임한다",
+      "object": "경상북도지사",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "참여한다",
+      "object": "경북국방의회연합회",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "활동한다",
+      "object": "중추원 참의",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "대정대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "훈6등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "훈5등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "훈4등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "쇼와대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "수여받는다",
+      "object": "훈3등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "동지",
+      "object": "사이토 마코토",
+      "confidence": 0.7,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "동지",
+      "object": "아베 히로시",
+      "confidence": 0.7,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "김서규",
+      "predicate": "동지",
+      "object": "하시모토 슌타",
+      "confidence": 0.7,
+      "source_note": "01-인물/김서규",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "임명된다",
+      "object": "조선총독부 중추원 부찬의",
+      "confidence": 0.9,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "수여받는다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "재직한다",
+      "object": "조선총독부 중추원 부찬의",
+      "confidence": 0.9,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "활동한다",
+      "object": "중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "활동한다",
+      "object": "조선총독부",
+      "confidence": 0.9,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "관련된다",
+      "object": "한일합병",
+      "confidence": 0.7,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "활동한다",
+      "object": "탁지부",
+      "confidence": 0.7,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "성하국",
+      "predicate": "수여받는다",
+      "object": "훈5등 팔괘장",
+      "confidence": 0.7,
+      "source_note": "01-인물/성하국",
+      "from_cache": false
+    },
+    {
+      "subject": "차남진",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "차남진",
+      "predicate": "참여한다",
+      "object": "조선임전보국단",
+      "confidence": 0.9,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "차남진",
+      "predicate": "건의한다",
+      "object": "의무교육 실시",
+      "confidence": 0.9,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "차남진",
+      "predicate": "건의한다",
+      "object": "중의원 선거법 실시",
+      "confidence": 0.9,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "차남진",
+      "predicate": "자문한다",
+      "object": "조선총독",
+      "confidence": 0.9,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "고이소 구니아키",
+      "predicate": "동지",
+      "object": "차남진",
+      "confidence": 0.7,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "다나카 미쯔오",
+      "predicate": "동지",
+      "object": "차남진",
+      "confidence": 0.7,
+      "source_note": "01-인물/차남진",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "친일",
+      "object": "일본 제국주의",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "수여받는다",
+      "object": "남작 작위",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "참여한다",
+      "object": "을사조약",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "상주한다",
+      "object": "대신들 처벌",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "세습받는다",
+      "object": "민철훈",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "수여받는다",
+      "object": "훈2등 태극장",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "수여받는다",
+      "object": "훈1등 팔괘장",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "후원",
+      "object": "대한산림협회",
+      "confidence": 0.7,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "직책",
+      "object": "중추원 의장",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "민종묵",
+      "predicate": "결성한다",
+      "object": "한일합병",
+      "confidence": 0.9,
+      "source_note": "01-인물/민종묵",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "참여한다",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "참여한다",
+      "object": "시국대동단",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "후원",
+      "object": "일본 제국주의",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "선전한다",
+      "object": "내선융화 정책",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "수상한다",
+      "object": "훈6등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "수상한다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "동지",
+      "object": "이완용",
+      "confidence": 0.7,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "동지",
+      "object": "채기두",
+      "confidence": 0.7,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "동지",
+      "object": "이병렬",
+      "confidence": 0.7,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "동지",
+      "object": "정만조",
+      "confidence": 0.7,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "오태환",
+      "predicate": "동지",
+      "object": "한규복",
+      "confidence": 0.7,
+      "source_note": "01-인물/오태환",
+      "from_cache": false
+    },
+    {
+      "subject": "이홍묵",
+      "predicate": "작위 계승",
+      "object": "이병무",
+      "confidence": 0.9,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "이홍묵",
+      "predicate": "결성한다",
+      "object": "동요회",
+      "confidence": 0.9,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "이홍묵",
+      "predicate": "참여한다",
+      "object": "국방헌금 헌납",
+      "confidence": 0.9,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "이홍묵",
+      "predicate": "참여한다",
+      "object": "조선임전보국단",
+      "confidence": 0.9,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "이홍묵",
+      "predicate": "후원",
+      "object": "일제강점기",
+      "confidence": 0.7,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "이병길",
+      "predicate": "동지",
+      "object": "동요회",
+      "confidence": 0.7,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "박부양",
+      "predicate": "동지",
+      "object": "동요회",
+      "confidence": 0.7,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "윤치호",
+      "predicate": "고문",
+      "object": "조선임전보국단",
+      "confidence": 0.7,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "최린",
+      "predicate": "단장",
+      "object": "조선임전보국단",
+      "confidence": 0.7,
+      "source_note": "01-인물/이홍묵",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "졸업한다",
+      "object": "일본 동경미술학교",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "특선",
+      "object": "제15회 조선미술전람회",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "참여한다",
+      "object": "황도학회",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "황도학회",
+      "predicate": "목표",
+      "object": "'내선일체' 실현",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "제작한다",
+      "object": "조선징병제실시",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "헌납한다",
+      "object": "조선군사령부 애국부",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "위원",
+      "object": "국민총력조선연맹 문화부",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "발표한다",
+      "object": "시국과 미술",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "참여한다",
+      "object": "단광회",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "협력한다",
+      "object": "일제의 침략 전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "활동한다",
+      "object": "조선미술가협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "출품한다",
+      "object": "흥아를 지키다",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "출품한다",
+      "object": "少女像",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "심형구",
+      "predicate": "출품한다",
+      "object": "東亞를 지킴",
+      "confidence": 0.9,
+      "source_note": "01-인물/심형구",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "등단한다",
+      "object": "단편소설 「준비」",
+      "confidence": 0.9,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "활동한다",
+      "object": "매일신보사 기자",
+      "confidence": 0.9,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "참여한다",
+      "object": "조선문인협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "참여한다",
+      "object": "조선문인보국회",
+      "confidence": 0.9,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "발표한다",
+      "object": "친일 성향 작품",
+      "confidence": 0.9,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "동지",
+      "object": "김동인",
+      "confidence": 0.7,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "동지",
+      "object": "이광수",
+      "confidence": 0.7,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "동지",
+      "object": "조용만",
+      "confidence": 0.7,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "동지",
+      "object": "최재서",
+      "confidence": 0.7,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "정인택",
+      "predicate": "동지",
+      "object": "김문집",
+      "confidence": 0.7,
+      "source_note": "01-인물/정인택",
+      "from_cache": false
+    },
+    {
+      "subject": "이덕용",
+      "predicate": "계승한다",
+      "object": "후작",
+      "confidence": 0.9,
+      "source_note": "01-인물/이덕용",
+      "from_cache": false
+    },
+    {
+      "subject": "이덕용",
+      "predicate": "서위된다",
+      "object": "종5위",
+      "confidence": 0.9,
+      "source_note": "01-인물/이덕용",
+      "from_cache": false
+    },
+    {
+      "subject": "이덕용",
+      "predicate": "부모",
+      "object": "이재각",
+      "confidence": 0.9,
+      "source_note": "01-인물/이덕용",
+      "from_cache": false
+    },
+    {
+      "subject": "이덕용",
+      "predicate": "친일반민족행위자",
+      "object": "일제강점하 반민족행위 진상규명에 관한 특별법",
+      "confidence": 0.9,
+      "source_note": "01-인물/이덕용",
+      "from_cache": false
+    },
+    {
+      "subject": "이기승",
+      "predicate": "포상받는다",
+      "object": "일본 정부",
+      "confidence": 0.9,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "이기승",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "이기승",
+      "predicate": "협력한다",
+      "object": "일제 식민 통치",
+      "confidence": 0.9,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "이기승",
+      "predicate": "체포된다",
+      "object": "반민족행위특별조사위원회",
+      "confidence": 0.9,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "사이토 마코토",
+      "predicate": "주도한다",
+      "object": "식민 통치 정책",
+      "confidence": 0.7,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "송병준",
+      "predicate": "친일",
+      "object": "이기승",
+      "confidence": 0.7,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "장덕수",
+      "predicate": "친일",
+      "object": "이기승",
+      "confidence": 0.7,
+      "source_note": "01-인물/이기승",
+      "from_cache": false
+    },
+    {
+      "subject": "전부일",
+      "predicate": "활동한다",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "전부일",
+      "predicate": "주장한다",
+      "object": "내선융화",
+      "confidence": 0.9,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "전부일",
+      "predicate": "주장한다",
+      "object": "조선 독립 불가론",
+      "confidence": 0.9,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "전부일",
+      "predicate": "참여한다",
+      "object": "임전대책협의회",
+      "confidence": 0.9,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "전부일",
+      "predicate": "참여한다",
+      "object": "채권 판매 활동",
+      "confidence": 0.9,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "전부일",
+      "predicate": "참여한다",
+      "object": "징병제 시행 감사 대회",
+      "confidence": 0.9,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "민원식",
+      "predicate": "동지",
+      "object": "전부일",
+      "confidence": 0.8,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "김동환",
+      "predicate": "동지",
+      "object": "전부일",
+      "confidence": 0.8,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "이종린",
+      "predicate": "동지",
+      "object": "전부일",
+      "confidence": 0.8,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "장덕수",
+      "predicate": "동지",
+      "object": "전부일",
+      "confidence": 0.8,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "한상룡",
+      "predicate": "동지",
+      "object": "전부일",
+      "confidence": 0.8,
+      "source_note": "01-인물/전부일",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "협력한다",
+      "object": "일제",
+      "confidence": 0.9,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "찬양한다",
+      "object": "일본 제국주의 침략전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "주장한다",
+      "object": "청년 사상 통제",
+      "confidence": 0.7,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "주장한다",
+      "object": "지방 행정 강화",
+      "confidence": 0.7,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "결성한다",
+      "object": "길주금융조합",
+      "confidence": 0.7,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "결성한다",
+      "object": "길주뽕왓조합",
+      "confidence": 0.7,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "수상한다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "수상한다",
+      "object": "대정대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "양재홍",
+      "predicate": "수상한다",
+      "object": "조선총독부시정25주년 기념표창",
+      "confidence": 0.9,
+      "source_note": "01-인물/양재홍",
+      "from_cache": false
+    },
+    {
+      "subject": "홍충현",
+      "predicate": "참여한다",
+      "object": "자위단원호회",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "홍충현",
+      "predicate": "참여한다",
+      "object": "대정친목회",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "홍충현",
+      "predicate": "수여받는다",
+      "object": "국권병합기념상",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "대정친목회",
+      "predicate": "주도한다",
+      "object": "내선융화",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "이완용",
+      "predicate": "고문",
+      "object": "대정친목회",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "예종석",
+      "predicate": "간사",
+      "object": "대정친목회",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "조진태",
+      "predicate": "참여한다",
+      "object": "명치천황 사망 시 훈장 민간 분급",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "백완혁",
+      "predicate": "참여한다",
+      "object": "명치천황 사망 시 훈장 민간 분급",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "이봉래",
+      "predicate": "참여한다",
+      "object": "명치천황 사망 시 훈장 민간 분급",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍충현",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "후원",
+      "object": "일본 제국주의",
+      "confidence": 0.9,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "수령",
+      "object": "후작 작위",
+      "confidence": 0.9,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "수령",
+      "object": "은사금",
+      "confidence": 0.9,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "참여한다",
+      "object": "한일합병",
+      "confidence": 0.9,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "수여받는다",
+      "object": "훈장",
+      "confidence": 0.9,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "결성한다",
+      "object": "사립국문학교",
+      "confidence": 0.7,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "동지",
+      "object": "이재완",
+      "confidence": 0.7,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "이재각",
+      "predicate": "동지",
+      "object": "이재명",
+      "confidence": 0.7,
+      "source_note": "01-인물/이재각",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "수여받는다",
+      "object": "훈6등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "임명된다",
+      "object": "조선총독부 중추원 부찬의",
+      "confidence": 0.9,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "수여받는다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "참여한다",
+      "object": "한일합병",
+      "confidence": 0.9,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "동지",
+      "object": "이근택",
+      "confidence": 0.7,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "동지",
+      "object": "상호",
+      "confidence": 0.7,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "동지",
+      "object": "박영철",
+      "confidence": 0.7,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "오제영",
+      "predicate": "재직한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/오제영",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "참여한다",
+      "object": "조선임전보국단",
+      "confidence": 0.9,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "주장한다",
+      "object": "국민정신총동원운동 강화",
+      "confidence": 0.9,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "촉구한다",
+      "object": "내선일체 구현",
+      "confidence": 0.9,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "동료",
+      "object": "박중양",
+      "confidence": 0.7,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "동료",
+      "object": "이진호",
+      "confidence": 0.7,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "관련",
+      "object": "윤덕영",
+      "confidence": 0.5,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "남백우",
+      "predicate": "관련",
+      "object": "김상형",
+      "confidence": 0.5,
+      "source_note": "01-인물/남백우",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "작위 계승",
+      "object": "송병준",
+      "confidence": 0.9,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "회장",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "임명",
+      "object": "귀족원 의원",
+      "confidence": 0.9,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "참의",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "관여",
+      "object": "민원식",
+      "confidence": 0.7,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "관여",
+      "object": "윤치호",
+      "confidence": 0.7,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "관여",
+      "object": "한상룡",
+      "confidence": 0.7,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "송종헌",
+      "predicate": "관여",
+      "object": "최린",
+      "confidence": 0.7,
+      "source_note": "01-인물/송종헌",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "참여한다",
+      "object": "일진회 평의원",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "참여한다",
+      "object": "합방청원운동",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "수행한다",
+      "object": "이용구",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "통역한다",
+      "object": "자위단원호회",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "알선한다",
+      "object": "밀정 15명",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "수령한다",
+      "object": "보수금",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "받는다",
+      "object": "훈8등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "함께 활동한다",
+      "object": "박지양",
+      "confidence": 0.7,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "함께 활동한다",
+      "object": "최운섭",
+      "confidence": 0.7,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "함께 활동한다",
+      "object": "한국정",
+      "confidence": 0.7,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "한경원",
+      "predicate": "관련된다",
+      "object": "송병준",
+      "confidence": 0.7,
+      "source_note": "01-인물/한경원",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "서위",
+      "object": "종5위",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "계승",
+      "object": "남작 작위",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "수여",
+      "object": "쇼와대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "수여",
+      "object": "대정대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김춘회",
+      "predicate": "부친",
+      "object": "김교신",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김정록",
+      "predicate": "계승",
+      "object": "남작 작위",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "행위",
+      "object": "친일반민족행위",
+      "confidence": 0.9,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "관련",
+      "object": "한일합병",
+      "confidence": 0.7,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "관련",
+      "object": "조선귀족령",
+      "confidence": 0.7,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김교신",
+      "predicate": "관련",
+      "object": "조선총독부",
+      "confidence": 0.7,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "김정록",
+      "predicate": "동지",
+      "object": "김교신",
+      "confidence": 0.7,
+      "source_note": "01-인물/김교신",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "찬성",
+      "object": "을사조약",
+      "confidence": 0.9,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "명령",
+      "object": "의병 진압",
+      "confidence": 0.9,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "수여",
+      "object": "자작 작위",
+      "confidence": 0.9,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "협력",
+      "object": "식민 통치",
+      "confidence": 0.9,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "동지",
+      "object": "이완용",
+      "confidence": 0.8,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "동지",
+      "object": "박제순",
+      "confidence": 0.8,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "동지",
+      "object": "이지용",
+      "confidence": 0.8,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "동지",
+      "object": "이근택",
+      "confidence": 0.8,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "권중현",
+      "predicate": "동지",
+      "object": "민영기",
+      "confidence": 0.8,
+      "source_note": "01-인물/권중현",
+      "from_cache": false
+    },
+    {
+      "subject": "김병원",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병원",
+      "from_cache": false
+    },
+    {
+      "subject": "김병원",
+      "predicate": "협력한다",
+      "object": "일제의 식민 통치",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병원",
+      "from_cache": false
+    },
+    {
+      "subject": "김병원",
+      "predicate": "결정된다",
+      "object": "친일반민족행위자",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병원",
+      "from_cache": false
+    },
+    {
+      "subject": "조선총독부",
+      "predicate": "식민 통치 기구",
+      "object": "중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/김병원",
+      "from_cache": false
+    },
+    {
+      "subject": "중추원",
+      "predicate": "자문한다",
+      "object": "조선총독",
+      "confidence": 0.7,
+      "source_note": "01-인물/김병원",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "참여한다",
+      "object": "각파유지연맹",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "참여한다",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "주장한다",
+      "object": "내선융화",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "주장한다",
+      "object": "조선 독립 불가론",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "발기인",
+      "object": "각파유지연맹",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "총무",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "이사",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "동지",
+      "object": "민원식",
+      "confidence": 0.7,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "동지",
+      "object": "송병준",
+      "confidence": 0.7,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "동지",
+      "object": "박영효",
+      "confidence": 0.7,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "정규환",
+      "predicate": "동지",
+      "object": "김명준",
+      "confidence": 0.7,
+      "source_note": "01-인물/정규환",
+      "from_cache": false
+    },
+    {
+      "subject": "함성욱",
+      "predicate": "재판한다",
+      "object": "이환식",
+      "confidence": 0.9,
+      "source_note": "01-인물/함성욱",
+      "from_cache": false
+    },
+    {
+      "subject": "함성욱",
+      "predicate": "재판한다",
+      "object": "이천석",
+      "confidence": 0.9,
+      "source_note": "01-인물/함성욱",
+      "from_cache": false
+    },
+    {
+      "subject": "함성욱",
+      "predicate": "수여받는다",
+      "object": "훈6등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/함성욱",
+      "from_cache": false
+    },
+    {
+      "subject": "함성욱",
+      "predicate": "수여받는다",
+      "object": "훈5등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/함성욱",
+      "from_cache": false
+    },
+    {
+      "subject": "훈6등 서보장",
+      "predicate": "규정된다",
+      "object": "친일반민족행위",
+      "confidence": 0.9,
+      "source_note": "01-인물/함성욱",
+      "from_cache": false
+    },
+    {
+      "subject": "훈5등 서보장",
+      "predicate": "규정된다",
+      "object": "친일반민족행위",
+      "confidence": 0.9,
+      "source_note": "01-인물/함성욱",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "집필한다",
+      "object": "청춘극장",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "집필한다",
+      "object": "성난 아시아",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "집필한다",
+      "object": "새벽길",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "후원",
+      "object": "조선연극문화협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "결성한다",
+      "object": "조선연극협회 산하 극작가동호회",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "조선총독부",
+      "predicate": "주도한다",
+      "object": "조선연극문화협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "미화한다",
+      "object": "지원병 제도",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "임승복",
+      "predicate": "정당화한다",
+      "object": "일제의 침략 전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "유치진",
+      "predicate": "동지",
+      "object": "성난 아시아",
+      "confidence": 0.7,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "김태진",
+      "predicate": "동지",
+      "object": "성난 아시아",
+      "confidence": 0.7,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "박영철",
+      "predicate": "참여한다",
+      "object": "빙화",
+      "confidence": 0.7,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "이서구",
+      "predicate": "참여한다",
+      "object": "국어극 보급",
+      "confidence": 0.7,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "주요한",
+      "predicate": "참여한다",
+      "object": "국어극 보급",
+      "confidence": 0.7,
+      "source_note": "01-인물/임승복",
+      "from_cache": false
+    },
+    {
+      "subject": "선우갑",
+      "predicate": "참여한다",
+      "object": "2·8 독립선언 체포",
+      "confidence": 0.9,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "선우갑",
+      "predicate": "정탐한다",
+      "object": "안창호",
+      "confidence": 0.9,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "선우갑",
+      "predicate": "정탐한다",
+      "object": "미주지역 독립운동가",
+      "confidence": 0.9,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "선우갑",
+      "predicate": "밀정으로 활동한다",
+      "object": "중국 안동현 헌병대",
+      "confidence": 0.9,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "선우갑",
+      "predicate": "체포한다",
+      "object": "김도연",
+      "confidence": 0.9,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "김구",
+      "predicate": "체포한다",
+      "object": "선우갑",
+      "confidence": 0.7,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "선우갑",
+      "predicate": "형제",
+      "object": "선우순",
+      "confidence": 0.9,
+      "source_note": "01-인물/선우갑",
+      "from_cache": false
+    },
+    {
+      "subject": "심의진",
+      "predicate": "참여한다",
+      "object": "3·1운동",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "심의진",
+      "predicate": "발포한다",
+      "object": "삼진의거 시위 군중",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "심의진",
+      "predicate": "체포된다",
+      "object": "반민특위",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "심의진",
+      "predicate": "결정된다",
+      "object": "친일 반민족 행위",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "반민특위",
+      "predicate": "폐지된다",
+      "object": "1949년",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "삼진의거",
+      "predicate": "발생한다",
+      "object": "1919년 4월 3일",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "삼진의거",
+      "predicate": "진압된다",
+      "object": "심의진",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "동아일보",
+      "predicate": "보도한다",
+      "object": "3·1운동",
+      "confidence": 0.9,
+      "source_note": "01-인물/심의진",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "재직한다",
+      "object": "조선총독부 판사 및 검사",
+      "confidence": 0.9,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "기소한다",
+      "object": "3·1운동 참여자",
+      "confidence": 0.9,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "재판한다",
+      "object": "항일독립운동 관련 사건",
+      "confidence": 0.9,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "수여받는다",
+      "object": "훈6등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "수여받는다",
+      "object": "다이쇼 대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "수여받는다",
+      "object": "쇼와 대례기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "최호선",
+      "predicate": "참여한다",
+      "object": "임재갑 재판",
+      "confidence": 0.7,
+      "source_note": "01-인물/최호선",
+      "from_cache": false
+    },
+    {
+      "subject": "노기주",
+      "predicate": "참여한다",
+      "object": "반전 격문 사건 수사",
+      "confidence": 0.9,
+      "source_note": "01-인물/노기주",
+      "from_cache": false
+    },
+    {
+      "subject": "노기주",
+      "predicate": "협력한다",
+      "object": "일제의 침략전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/노기주",
+      "from_cache": false
+    },
+    {
+      "subject": "노기주",
+      "predicate": "수여받는다",
+      "object": "훈8등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/노기주",
+      "from_cache": false
+    },
+    {
+      "subject": "노기주",
+      "predicate": "수여받는다",
+      "object": "훈7등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/노기주",
+      "from_cache": false
+    },
+    {
+      "subject": "노기주",
+      "predicate": "상신된다",
+      "object": "위로 금",
+      "confidence": 0.9,
+      "source_note": "01-인물/노기주",
+      "from_cache": false
+    },
+    {
+      "subject": "노기주",
+      "predicate": "동지",
+      "object": "노덕술",
+      "confidence": 0.7,
+      "source_note": "01-인물/노기주",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "참여한다",
+      "object": "의병 관련 재판",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "탄압한다",
+      "object": "항일 세력",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "재판한다",
+      "object": "허위",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "재판한다",
+      "object": "이덕현",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "결성한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "후원",
+      "object": "친일 행위",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "홍우석",
+      "predicate": "동지",
+      "object": "홍종억",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍우석",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "종군",
+      "object": "일본군 근위보병 제2연대",
+      "confidence": 0.9,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "협력",
+      "object": "러일전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "수령",
+      "object": "훈5등 쌍광옥일장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "수령",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "결정",
+      "object": "친일반민족행위자",
+      "confidence": 0.9,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "후원",
+      "object": "만몽재주동포후원회",
+      "confidence": 0.7,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "동기생",
+      "object": "박영철",
+      "confidence": 0.7,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "동기생",
+      "object": "박두병",
+      "confidence": 0.7,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "동기생",
+      "object": "김응선",
+      "confidence": 0.7,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "동기생",
+      "object": "전영혜",
+      "confidence": 0.7,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "김기원",
+      "predicate": "동기생",
+      "object": "남창",
+      "confidence": 0.7,
+      "source_note": "01-인물/김기원",
+      "from_cache": false
+    },
+    {
+      "subject": "한진창",
+      "predicate": "재직한다",
+      "object": "조선총독부 중추원 참의",
+      "confidence": 0.9,
+      "source_note": "01-인물/한진창",
+      "from_cache": false
+    },
+    {
+      "subject": "한진창",
+      "predicate": "수여받는다",
+      "object": "종4위",
+      "confidence": 0.9,
+      "source_note": "01-인물/한진창",
+      "from_cache": false
+    },
+    {
+      "subject": "한진창",
+      "predicate": "참여한다",
+      "object": "중추원 회의",
+      "confidence": 0.9,
+      "source_note": "01-인물/한진창",
+      "from_cache": false
+    },
+    {
+      "subject": "한진창",
+      "predicate": "수여받는다",
+      "object": "훈3등 태극장",
+      "confidence": 0.9,
+      "source_note": "01-인물/한진창",
+      "from_cache": false
+    },
+    {
+      "subject": "한진창",
+      "predicate": "수여받는다",
+      "object": "昭和大禮記念章",
+      "confidence": 0.9,
+      "source_note": "01-인물/한진창",
+      "from_cache": false
+    },
+    {
+      "subject": "한일합병",
+      "predicate": "배경",
+      "object": "한진창의 중추원 참의 활동",
+      "confidence": 0.7,
+      "source_note": "01-인물/한진창",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "참여한다",
+      "object": "3.1 만세운동",
+      "confidence": 0.9,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "결성한다",
+      "object": "조선임전보국단",
+      "confidence": 0.9,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "지시한다",
+      "object": "민족문화유산 헌납",
+      "confidence": 0.9,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "후원",
+      "object": "황국신민화 정책",
+      "confidence": 0.9,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "후원",
+      "object": "침략전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "활동한다",
+      "object": "임전대책협의회",
+      "confidence": 0.9,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "동지",
+      "object": "김창영",
+      "confidence": 0.7,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "동지",
+      "object": "상호",
+      "confidence": 0.7,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "동지",
+      "object": "이종린",
+      "confidence": 0.7,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "이종욱",
+      "predicate": "동지",
+      "object": "장덕수",
+      "confidence": 0.7,
+      "source_note": "01-인물/이종욱",
+      "from_cache": false
+    },
+    {
+      "subject": "류창렬",
+      "predicate": "체포한다",
+      "object": "김도원",
+      "confidence": 0.9,
+      "source_note": "01-인물/류창렬",
+      "from_cache": false
+    },
+    {
+      "subject": "류창렬",
+      "predicate": "기여한다",
+      "object": "보합단 와해",
+      "confidence": 0.9,
+      "source_note": "01-인물/류창렬",
+      "from_cache": false
+    },
+    {
+      "subject": "류창렬",
+      "predicate": "수여받는다",
+      "object": "경찰관리공로기장",
+      "confidence": 0.9,
+      "source_note": "01-인물/류창렬",
+      "from_cache": false
+    },
+    {
+      "subject": "류창렬",
+      "predicate": "수여받는다",
+      "object": "특별공로 가봉",
+      "confidence": 0.9,
+      "source_note": "01-인물/류창렬",
+      "from_cache": false
+    },
+    {
+      "subject": "이종근",
+      "predicate": "동료",
+      "object": "류창렬",
+      "confidence": 0.7,
+      "source_note": "01-인물/류창렬",
+      "from_cache": false
+    },
+    {
+      "subject": "근동",
+      "predicate": "동료",
+      "object": "류창렬",
+      "confidence": 0.7,
+      "source_note": "01-인물/류창렬",
+      "from_cache": false
+    },
+    {
+      "subject": "박지근",
+      "predicate": "근무한다",
+      "object": "조선총독부 임시토지조사국",
+      "confidence": 0.9,
+      "source_note": "01-인물/박지근",
+      "from_cache": false
+    },
+    {
+      "subject": "박지근",
+      "predicate": "참여한다",
+      "object": "조선임전보국단",
+      "confidence": 0.9,
+      "source_note": "01-인물/박지근",
+      "from_cache": false
+    },
+    {
+      "subject": "박지근",
+      "predicate": "참여한다",
+      "object": "중일전쟁",
+      "confidence": 0.7,
+      "source_note": "01-인물/박지근",
+      "from_cache": false
+    },
+    {
+      "subject": "박지근",
+      "predicate": "재직한다",
+      "object": "조선총독부 중추원",
+      "confidence": 0.9,
+      "source_note": "01-인물/박지근",
+      "from_cache": false
+    },
+    {
+      "subject": "조선임전보국단",
+      "predicate": "결성한다",
+      "object": "국민총력조선연맹",
+      "confidence": 0.7,
+      "source_note": "01-인물/박지근",
+      "from_cache": false
+    },
+    {
+      "subject": "박지근",
+      "predicate": "역할한다",
+      "object": "일제강점기",
+      "confidence": 0.5,
+      "source_note": "01-인물/박지근",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "참여한다",
+      "object": "애국금차회",
+      "confidence": 0.9,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "참여한다",
+      "object": "조선부인문제연구회",
+      "confidence": 0.9,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "기고한다",
+      "object": "매일신보",
+      "confidence": 0.9,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "강연한다",
+      "object": "조선총독부 시국강연회",
+      "confidence": 0.9,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "강연한다",
+      "object": "국민정신총동원연맹",
+      "confidence": 0.9,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "기여한다",
+      "object": "내선일체 정책",
+      "confidence": 0.7,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "조기홍",
+      "predicate": "후원",
+      "object": "일제의 침략 전쟁",
+      "confidence": 0.9,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "김활란",
+      "predicate": "동지",
+      "object": "조기홍",
+      "confidence": 0.7,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "손정규",
+      "predicate": "동지",
+      "object": "조기홍",
+      "confidence": 0.7,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "송금선",
+      "predicate": "동지",
+      "object": "조기홍",
+      "confidence": 0.7,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "고황경",
+      "predicate": "동지",
+      "object": "조기홍",
+      "confidence": 0.7,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "이숙종",
+      "predicate": "동지",
+      "object": "조기홍",
+      "confidence": 0.7,
+      "source_note": "01-인물/조기홍",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "참여한다",
+      "object": "조선총독부",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "재직한다",
+      "object": "만주국",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "훈포상",
+      "object": "친일 행위",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "부임한다",
+      "object": "평안북도 벽동군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "부임한다",
+      "object": "평안북도 용천군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "부임한다",
+      "object": "평안북도 창성군수",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "부임한다",
+      "object": "만주국 牡丹江省 省長官房",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "부임한다",
+      "object": "전라남도 참여관",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "부임한다",
+      "object": "함경남도 참여관",
+      "confidence": 0.9,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "동지",
+      "object": "신응희",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "동지",
+      "object": "이규완",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "동지",
+      "object": "이두황",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "동지",
+      "object": "조희문",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "홍영선",
+      "predicate": "동지",
+      "object": "강동진",
+      "confidence": 0.7,
+      "source_note": "01-인물/홍영선",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "참여한다",
+      "object": "일진회",
+      "confidence": 0.9,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "보고한다",
+      "object": "일제",
+      "confidence": 0.9,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "협력한다",
+      "object": "통감부",
+      "confidence": 0.9,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "수여받는다",
+      "object": "훈7등 瑞寶章",
+      "confidence": 0.9,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "수여받는다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "관계한다",
+      "object": "동양척식주식회사",
+      "confidence": 0.7,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "최기남",
+      "predicate": "협력한다",
+      "object": "조선총독부",
+      "confidence": 0.9,
+      "source_note": "01-인물/최기남",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "참여한다",
+      "object": "대동민우회",
+      "confidence": 0.9,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "참여한다",
+      "object": "조선언론보국회",
+      "confidence": 0.9,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "대동민우회",
+      "predicate": "주장한다",
+      "object": "황국신민화",
+      "confidence": 0.9,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "조선언론보국회",
+      "predicate": "주장한다",
+      "object": "내선일체",
+      "confidence": 0.9,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "주장한다",
+      "object": "내선일체",
+      "confidence": 0.9,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "주장한다",
+      "object": "황국신민화",
+      "confidence": 0.9,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "강연한다",
+      "object": "내선일체",
+      "confidence": 0.7,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "강연한다",
+      "object": "황국신민화",
+      "confidence": 0.7,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "참여한다",
+      "object": "미나미 총독 예방",
+      "confidence": 0.7,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "차재정",
+      "predicate": "참여한다",
+      "object": "시국유지원탁회의",
+      "confidence": 0.7,
+      "source_note": "01-인물/차재정",
+      "from_cache": false
+    },
+    {
+      "subject": "주림",
+      "predicate": "참여한다",
+      "object": "韓僑事業會",
+      "confidence": 0.9,
+      "source_note": "01-인물/주림",
+      "from_cache": false
+    },
+    {
+      "subject": "주림",
+      "predicate": "결성한다",
+      "object": "만주보민회 장백지부",
+      "confidence": 0.9,
+      "source_note": "01-인물/주림",
+      "from_cache": false
+    },
+    {
+      "subject": "주림",
+      "predicate": "후원",
+      "object": "일본정부",
+      "confidence": 0.9,
+      "source_note": "01-인물/주림",
+      "from_cache": false
+    },
+    {
+      "subject": "주림",
+      "predicate": "투옥된다",
+      "object": "항일독립운동 세력",
+      "confidence": 0.9,
+      "source_note": "01-인물/주림",
+      "from_cache": false
+    },
+    {
+      "subject": "주림",
+      "predicate": "참여한다",
+      "object": "만주보민회 해산분배금",
+      "confidence": 0.9,
+      "source_note": "01-인물/주림",
+      "from_cache": false
+    },
+    {
+      "subject": "주림",
+      "predicate": "동지",
+      "object": "이인수",
+      "confidence": 0.7,
+      "source_note": "01-인물/주림",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원 찬의",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "참여한다",
+      "object": "조선총독부 중추원 참의",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "참여한다",
+      "object": "조선총독부 함경남도 참여관",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "후원",
+      "object": "박제순",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박제순",
+      "predicate": "동지",
+      "object": "박승봉",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "수여받는다",
+      "object": "종4위",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "수여받는다",
+      "object": "훈4등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "수여받는다",
+      "object": "훈3등 서보장",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "박승봉",
+      "predicate": "수여받는다",
+      "object": "한국병합기념장",
+      "confidence": 0.9,
+      "source_note": "01-인물/박승봉",
+      "from_cache": false
+    },
+    {
+      "subject": "김석태",
+      "predicate": "활동한다",
+      "object": "국민협회",
+      "confidence": 0.9,
+      "source_note": "01-인물/김석태",
+      "from_cache": false
+    },
+    {
+      "subject": "김석태",
+      "predicate": "사장",
+      "object": "민중신문",
+      "confidence": 0.9,
+      "source_note": "01-인물/김석태",
+      "from_cache": false
+    },
+    {
+      "subject": "김석태",
+      "predicate": "발기인",
+      "object": "협성구락부",
+      "confidence": 0.9,
+      "source_note": "01-인물/김석태",
+      "from_cache": false
+    },
+    {
+      "subject": "국민협회",
+      "predicate": "주도한다",
+      "object": "내선융화",
+      "confidence": 0.7,
+      "source_note": "01-인물/김석태",
+      "from_cache": false
+    },
+    {
+      "subject": "국민협회",
+      "predicate": "주장한다",
+      "object": "조선 독립 불가론",
+      "confidence": 0.7,
+      "source_note": "01-인물/김석태",
+      "from_cache": false
+    },
+    {
+      "subject": "김석태",
+      "predicate": "협력한다",
+      "object": "일제 식민 통치",
+      "confidence": 0.9,
+      "source_note": "01-인물/김석태",
+      "from_cache": false
+    },
+    {
+      "subject": "김석태",
+      "predicate": "주도한다",
+      "object": "황민화 운동",
+      "confidence": 0.7,
+      "source_note": "01-인물/김석태",
       "from_cache": false
     }
   ]
