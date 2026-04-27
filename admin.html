@@ -384,6 +384,31 @@ function reviewLabelOf(issue) {
   return REVIEW_NONE;
 }
 
+// submit.html은 공개 폼이라 누구나 임의 텍스트로 이슈를 생성할 수 있다.
+// title/body에서 추출한 모든 값은 innerHTML에 넣기 전 반드시 이스케이프.
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// 본문용: 이스케이프 후 \n만 <br>로 복원
+function escapeHtmlMultiline(s) {
+  return escapeHtml(s).replace(/\n/g, '<br>');
+}
+
+// 사용자 입력이 들어가는 URL은 javascript: 등 위험한 스킴을 차단
+function safeUrl(u) {
+  if (!u) return '';
+  const s = String(u).trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  return '';
+}
+
 // ─── 로그인 ───────────────────────────────────────────────
 document.getElementById('secret-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
@@ -456,7 +481,7 @@ async function loadIssues() {
     allIssues = await fetchAllIssues(currentTab, adminSecret);
   } catch(e) {
     allIssues = [];
-    document.getElementById('issue-list-area').innerHTML = `<div class="empty-msg">불러오기 실패: ${e.message}</div>`;
+    document.getElementById('issue-list-area').innerHTML = `<div class="empty-msg">불러오기 실패: ${escapeHtml(e.message)}</div>`;
     return;
   }
   renderIssues();
@@ -511,6 +536,7 @@ function renderIssueList(issues) {
     const type   = extractSection(issue.body, '자료 종류') || '';
     const date   = extractSection(issue.body, '자료 연도') || '';
     const sub    = (issue.body || '').match(/^제출자: (.+)$/m)?.[1] || '익명';
+    const title  = issue.title.replace('[자료 제출] ','');
     const stateBadge = issue.state === 'open'
       ? '<span class="badge badge-open">미처리</span>'
       : '<span class="badge badge-closed">완료</span>';
@@ -519,14 +545,14 @@ function renderIssueList(issues) {
     return `<div class="issue-card" onclick="openModal(${issue.number})">
       <div class="issue-num">#${issue.number}</div>
       <div class="issue-body">
-        <div class="issue-title">${issue.title.replace('[자료 제출] ','')}</div>
+        <div class="issue-title">${escapeHtml(title)}</div>
         <div class="issue-meta">
           ${stateBadge}
           ${reviewBadge}
-          ${region ? `<span>📍 ${region}</span>` : ''}
-          ${type ? `<span>📄 ${type}</span>` : ''}
-          ${date ? `<span>📅 ${date}</span>` : ''}
-          <span>👤 ${sub}</span>
+          ${region ? `<span>📍 ${escapeHtml(region)}</span>` : ''}
+          ${type ? `<span>📄 ${escapeHtml(type)}</span>` : ''}
+          ${date ? `<span>📅 ${escapeHtml(date)}</span>` : ''}
+          <span>👤 ${escapeHtml(sub)}</span>
           <span>${timeAgo(issue.created_at)}</span>
         </div>
       </div>
@@ -556,25 +582,29 @@ function openModal(num) {
   ];
   const submitter = body.match(/^제출자: (.+)$/m)?.[1] || '익명';
 
+  const rev = reviewLabelOf(issue);
+  const issueUrl = safeUrl(issue.html_url);
   document.getElementById('modal-fields').innerHTML = `
     ${fields.map(f => {
       const val = extractSection(body, f.key) || '(없음)';
       return `<div class="field-item${f.full ? ' field-full' : ''}">
         <div class="field-label">${f.label}</div>
-        <div class="field-value">${val.replace(/\n/g,'<br>')}</div>
+        <div class="field-value">${escapeHtmlMultiline(val)}</div>
       </div>`;
     }).join('')}
     <div class="field-item">
       <div class="field-label">제출자</div>
-      <div class="field-value">${submitter}</div>
+      <div class="field-value">${escapeHtml(submitter)}</div>
     </div>
     <div class="field-item">
       <div class="field-label">검토 상태</div>
-      <div class="field-value"><span class="badge ${reviewLabelOf(issue).cls}">${reviewLabelOf(issue).text}</span></div>
+      <div class="field-value"><span class="badge ${rev.cls}">${rev.text}</span></div>
     </div>
     <div class="field-item field-full">
       <div class="field-label">GitHub 이슈 (검토자 의견 댓글 확인)</div>
-      <div class="field-value"><a href="${issue.html_url}" target="_blank" style="color:var(--blue)">#${issue.number} 열기 →</a></div>
+      <div class="field-value">${issueUrl
+        ? `<a href="${escapeHtml(issueUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">#${issue.number} 열기 →</a>`
+        : `#${issue.number} (링크 없음)`}</div>
     </div>
   `;
 
@@ -623,25 +653,33 @@ function buildAttachments(fileSection) {
   if (!fileSection) return '';
   const lines = fileSection.split('\n').filter(l => l.trim().startsWith('-'));
   return lines.map(line => {
-    // 마크다운 이미지 형태: - ![이름](URL)
+    // 마크다운 이미지: - ![이름](URL)
     const imgMatch = line.match(/!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/);
     if (imgMatch) {
+      const url = safeUrl(imgMatch[2]);
+      const alt = imgMatch[1];
+      if (!url) return '';
+      // openFullscreen은 onclick 인라인에 URL을 박아 따옴표 escape 위험이 있어
+      // data 속성으로 전달하고 위임 핸들러로 처리
       return `<div class="attachment-item">
-        <img src="${imgMatch[2]}" alt="${imgMatch[1]}" onclick="openFullscreen('${imgMatch[2]}')">
-        <a href="${imgMatch[2]}" target="_blank">${imgMatch[1]}</a>
+        <img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" data-fs="${escapeHtml(url)}" onclick="openFullscreen(this.dataset.fs)">
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(alt)}</a>
       </div>`;
     }
     // 마크다운 링크: - [이름](URL)
     const linkMatch = line.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
     if (linkMatch) {
-      const isPdf = linkMatch[2].toLowerCase().endsWith('.pdf') || linkMatch[1].toLowerCase().endsWith('.pdf');
+      const url = safeUrl(linkMatch[2]);
+      const name = linkMatch[1];
+      if (!url) return '';
+      const isPdf = url.toLowerCase().endsWith('.pdf') || name.toLowerCase().endsWith('.pdf');
       return `<div class="attachment-item">
-        <a href="${linkMatch[2]}" target="_blank">${isPdf ? '📄' : '📎'} ${linkMatch[1]}</a>
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${isPdf ? '📄' : '📎'} ${escapeHtml(name)}</a>
       </div>`;
     }
     // 일반 텍스트 (구버전 - 파일명만)
     const text = line.replace(/^-\s*/, '');
-    return `<div class="attachment-item"><span style="color:var(--muted);font-size:13px;">📎 ${text}</span></div>`;
+    return `<div class="attachment-item"><span style="color:var(--muted);font-size:13px;">📎 ${escapeHtml(text)}</span></div>`;
   }).join('');
 }
 
@@ -688,8 +726,10 @@ async function doApprove() {
 
   if (data.ok) {
     document.getElementById('action-result').className = 'action-result ok';
+    const commitUrl = safeUrl(data.commit_url);
     document.getElementById('action-result').innerHTML =
-      `✅ 반영 완료! <code>${data.file_path}</code><br><a href="${data.commit_url}" target="_blank" style="color:var(--blue)">커밋 보기 →</a>`;
+      `✅ 반영 완료! <code>${escapeHtml(data.file_path)}</code>` +
+      (commitUrl ? `<br><a href="${escapeHtml(commitUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">커밋 보기 →</a>` : '');
     allIssues = allIssues.filter(i => i.number !== currentIssue.number);
   } else {
     document.getElementById('action-result').className = 'action-result err';
