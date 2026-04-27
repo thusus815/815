@@ -389,6 +389,29 @@ document.getElementById('secret-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
+async function fetchAllIssues(state, secret) {
+  // worker가 per_page=100을 쓰므로 한 페이지당 최대 100건.
+  // 100건이 꽉 차면 다음 페이지가 있다고 보고 계속 가져온다 (안전 상한 10페이지 = 1000건).
+  const all = [];
+  for (let page = 1; page <= 10; page++) {
+    const res = await fetch(`${WORKER_URL}/admin/issues?state=${state}&page=${page}`, {
+      headers: { 'X-Admin-Secret': secret }
+    });
+    if (!res.ok) {
+      const err = new Error(`서버 오류: ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      throw new Error(`응답 오류: ${JSON.stringify(data)}`);
+    }
+    all.push(...data);
+    if (data.length < 100) break;
+  }
+  return all;
+}
+
 async function doLogin() {
   const secret = document.getElementById('secret-input').value.trim();
   if (!secret) return;
@@ -396,22 +419,7 @@ async function doLogin() {
   errEl.textContent = '확인 중...';
 
   try {
-    const res = await fetch(`${WORKER_URL}/admin/issues?state=open&page=1`, {
-      headers: { 'X-Admin-Secret': secret }
-    });
-    if (res.status === 401) {
-      errEl.textContent = '비밀번호가 맞지 않습니다.';
-      return;
-    }
-    if (!res.ok) {
-      errEl.textContent = `서버 오류: ${res.status} — Worker가 응답하지 않습니다.`;
-      return;
-    }
-    const data = await res.json();
-    if (!Array.isArray(data)) {
-      errEl.textContent = `응답 오류: ${JSON.stringify(data)}`;
-      return;
-    }
+    const data = await fetchAllIssues('open', secret);
     adminSecret = secret;
     errEl.textContent = '';
     document.getElementById('login-screen').style.display = 'none';
@@ -419,7 +427,8 @@ async function doLogin() {
     allIssues = data;
     renderIssues();
   } catch(e) {
-    errEl.textContent = `네트워크 오류: ${e.message}`;
+    if (e.status === 401) errEl.textContent = '비밀번호가 맞지 않습니다.';
+    else errEl.textContent = e.message || `네트워크 오류`;
   }
 }
 
@@ -443,11 +452,13 @@ function switchTab(tab) {
 
 async function loadIssues() {
   document.getElementById('issue-list-area').innerHTML = '<div class="loading-msg">불러오는 중...</div>';
-  const res = await fetch(`${WORKER_URL}/admin/issues?state=${currentTab}`, {
-    headers: { 'X-Admin-Secret': adminSecret }
-  });
-  const data = await res.json();
-  allIssues = Array.isArray(data) ? data : [];
+  try {
+    allIssues = await fetchAllIssues(currentTab, adminSecret);
+  } catch(e) {
+    allIssues = [];
+    document.getElementById('issue-list-area').innerHTML = `<div class="empty-msg">불러오기 실패: ${e.message}</div>`;
+    return;
+  }
   renderIssues();
 }
 

@@ -449,7 +449,7 @@ async function handleAdminIssues(req: Request, env: Env) {
   const page  = url.searchParams.get('page') || '1';
 
   const ghRes = await fetch(
-    `https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=${state}&per_page=30&page=${page}`,
+    `https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=${state}&per_page=100&page=${page}`,
     { headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-admin' } }
   );
   const issues = await ghRes.json();
