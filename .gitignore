@@ -87,3 +87,7 @@ worker/package-lock.json
 백업/
 backup/
 _archive/
+
+# ----- Claude Code 개인 설정 -----
+# settings.json은 팀 공유, settings.local.json만 개인용
+.claude/settings.local.json
