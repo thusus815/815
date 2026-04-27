@@ -99,6 +99,24 @@
   }
   .badge-open { background: #1a3a1a; color: var(--green); }
   .badge-closed { background: #2a1a1a; color: var(--muted); }
+  .badge-review-ok      { background: #1a3a2a; color: #5dba9a; }
+  .badge-review-edit    { background: #3a2e1a; color: #e0b85c; }
+  .badge-review-reroute { background: #1a2a3a; color: var(--blue); }
+  .badge-review-reject  { background: #3a1a1a; color: var(--red); }
+  .badge-review-none    { background: #2a2a3a; color: var(--muted); }
+
+  /* 검토 진행 요약 */
+  .summary-bar {
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 18px; margin-bottom: 14px;
+    font-size: 13px;
+  }
+  .summary-item { color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 5px; transition: background .15s; }
+  .summary-item:hover { background: var(--card); }
+  .summary-item.active { background: var(--card); color: var(--text); }
+  .summary-item strong { color: var(--text); margin-left: 4px; }
+  .summary-divider { color: var(--border); }
 
   .empty-msg { color: var(--muted); text-align: center; padding: 60px 0; font-size: 15px; }
   .loading-msg { color: var(--muted); text-align: center; padding: 40px 0; }
@@ -348,6 +366,23 @@ let currentIssue = null;
 let currentTab = 'open';
 let mdEditorOpen = false;
 let rejectBoxOpen = false;
+let reviewFilter = 'all'; // all | ok | edit | reroute | reject | none
+
+const REVIEW_LABEL_MAP = {
+  '검토완료':   { key: 'ok',      text: '✅ 검토완료',   cls: 'badge-review-ok' },
+  '수정필요':   { key: 'edit',    text: '✏️ 수정필요',   cls: 'badge-review-edit' },
+  '분류재검토': { key: 'reroute', text: '🗂 분류재검토', cls: 'badge-review-reroute' },
+  '반려추천':   { key: 'reject',  text: '❌ 반려추천',   cls: 'badge-review-reject' },
+};
+const REVIEW_NONE = { key: 'none', text: '🆕 미검토', cls: 'badge-review-none' };
+
+function reviewLabelOf(issue) {
+  const labelNames = (issue.labels || []).map(l => typeof l === 'string' ? l : l.name);
+  for (const name of ['검토완료','수정필요','분류재검토','반려추천']) {
+    if (labelNames.includes(name)) return REVIEW_LABEL_MAP[name];
+  }
+  return REVIEW_NONE;
+}
 
 // ─── 로그인 ───────────────────────────────────────────────
 document.getElementById('secret-input').addEventListener('keydown', e => {
@@ -417,37 +452,66 @@ async function loadIssues() {
 }
 
 function filterIssues() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const filtered = q
-    ? allIssues.filter(i => i.title.toLowerCase().includes(q) || (i.body || '').toLowerCase().includes(q))
-    : allIssues;
-  renderIssueList(filtered);
+  renderIssues();
+}
+
+function setReviewFilter(key) {
+  reviewFilter = key;
+  renderIssues();
 }
 
 function renderIssues() {
-  renderIssueList(allIssues);
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let filtered = q
+    ? allIssues.filter(i => i.title.toLowerCase().includes(q) || (i.body || '').toLowerCase().includes(q))
+    : allIssues;
+  if (reviewFilter !== 'all') {
+    filtered = filtered.filter(i => reviewLabelOf(i).key === reviewFilter);
+  }
+  renderIssueList(filtered);
+}
+
+function renderSummaryBar() {
+  const counts = { ok: 0, edit: 0, reroute: 0, reject: 0, none: 0 };
+  allIssues.forEach(i => counts[reviewLabelOf(i).key]++);
+  const total = allIssues.length;
+  const item = (key, label, n) =>
+    `<span class="summary-item ${reviewFilter === key ? 'active' : ''}" onclick="setReviewFilter('${key}')">${label}<strong>${n}</strong></span>`;
+  return `<div class="summary-bar">
+    ${item('all', '전체 ', total)}
+    <span class="summary-divider">|</span>
+    ${item('none',    '🆕 미검토 ',     counts.none)}
+    ${item('ok',      '✅ 검토완료 ',   counts.ok)}
+    ${item('edit',    '✏️ 수정필요 ',   counts.edit)}
+    ${item('reroute', '🗂 분류재검토 ', counts.reroute)}
+    ${item('reject',  '❌ 반려추천 ',   counts.reject)}
+  </div>`;
 }
 
 function renderIssueList(issues) {
   const el = document.getElementById('issue-list-area');
+  const summary = renderSummaryBar();
   if (!issues.length) {
-    el.innerHTML = '<div class="empty-msg">제출된 자료가 없습니다.</div>';
+    el.innerHTML = summary + '<div class="empty-msg">조건에 맞는 자료가 없습니다.</div>';
     return;
   }
-  el.innerHTML = `<div class="issue-list">${issues.map(issue => {
+  el.innerHTML = summary + `<div class="issue-list">${issues.map(issue => {
     const region = extractSection(issue.body, '관련 지역') || '';
     const type   = extractSection(issue.body, '자료 종류') || '';
     const date   = extractSection(issue.body, '자료 연도') || '';
     const sub    = (issue.body || '').match(/^제출자: (.+)$/m)?.[1] || '익명';
-    const badge  = issue.state === 'open'
+    const stateBadge = issue.state === 'open'
       ? '<span class="badge badge-open">미처리</span>'
       : '<span class="badge badge-closed">완료</span>';
+    const rev = reviewLabelOf(issue);
+    const reviewBadge = `<span class="badge ${rev.cls}">${rev.text}</span>`;
     return `<div class="issue-card" onclick="openModal(${issue.number})">
       <div class="issue-num">#${issue.number}</div>
       <div class="issue-body">
         <div class="issue-title">${issue.title.replace('[자료 제출] ','')}</div>
         <div class="issue-meta">
-          ${badge}
+          ${stateBadge}
+          ${reviewBadge}
           ${region ? `<span>📍 ${region}</span>` : ''}
           ${type ? `<span>📄 ${type}</span>` : ''}
           ${date ? `<span>📅 ${date}</span>` : ''}
@@ -494,7 +558,11 @@ function openModal(num) {
       <div class="field-value">${submitter}</div>
     </div>
     <div class="field-item">
-      <div class="field-label">GitHub 이슈</div>
+      <div class="field-label">검토 상태</div>
+      <div class="field-value"><span class="badge ${reviewLabelOf(issue).cls}">${reviewLabelOf(issue).text}</span></div>
+    </div>
+    <div class="field-item field-full">
+      <div class="field-label">GitHub 이슈 (검토자 의견 댓글 확인)</div>
       <div class="field-value"><a href="${issue.html_url}" target="_blank" style="color:var(--blue)">#${issue.number} 열기 →</a></div>
     </div>
   `;
