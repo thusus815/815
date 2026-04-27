@@ -288,7 +288,7 @@
 
   <div class="main">
     <div class="filter-row">
-      <input type="text" id="search-input" placeholder="제목·지역 검색..." oninput="filterIssues()" style="flex:1">
+      <input type="text" id="search-input" placeholder="제목·지역 검색..." oninput="renderIssues()" style="flex:1">
       <button class="refresh-btn" onclick="loadIssues()">↻ 새로고침</button>
     </div>
     <div id="issue-list-area">
@@ -414,11 +414,13 @@ document.getElementById('secret-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
+const PER_PAGE = 100; // worker도 동일 값 사용
+const MAX_PAGES = 10;  // 1000건 상한
+
 async function fetchAllIssues(state, secret) {
-  // worker가 per_page=100을 쓰므로 한 페이지당 최대 100건.
-  // 100건이 꽉 차면 다음 페이지가 있다고 보고 계속 가져온다 (안전 상한 10페이지 = 1000건).
   const all = [];
-  for (let page = 1; page <= 10; page++) {
+  let lastPageFull = false;
+  for (let page = 1; page <= MAX_PAGES; page++) {
     const res = await fetch(`${WORKER_URL}/admin/issues?state=${state}&page=${page}`, {
       headers: { 'X-Admin-Secret': secret }
     });
@@ -432,9 +434,34 @@ async function fetchAllIssues(state, secret) {
       throw new Error(`응답 오류: ${JSON.stringify(data)}`);
     }
     all.push(...data);
-    if (data.length < 100) break;
+    lastPageFull = data.length === PER_PAGE;
+    if (!lastPageFull) break;
+  }
+  // 마지막 페이지가 꽉 찬 채로 상한에 도달했다면 추가 자료가 있을 수 있다는 뜻
+  if (lastPageFull) {
+    console.warn(`admin.html: ${MAX_PAGES * PER_PAGE}건 상한 도달 — 추가 자료가 누락됐을 수 있습니다. MAX_PAGES를 늘리거나 검토 진행을 통해 처리 완료 탭으로 옮겨주세요.`);
+    showStaleBanner(MAX_PAGES * PER_PAGE);
+  } else {
+    hideStaleBanner();
   }
   return all;
+}
+
+function showStaleBanner(limit) {
+  let el = document.getElementById('pagination-warning');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pagination-warning';
+    el.style.cssText = 'background:#3a2e1a;color:#e0b85c;border:1px solid #5a4a2a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px';
+    const main = document.querySelector('.main');
+    if (main) main.insertBefore(el, main.firstChild);
+  }
+  el.textContent = `⚠ ${limit}건 상한 도달 — 추가 자료가 누락됐을 수 있습니다.`;
+}
+
+function hideStaleBanner() {
+  const el = document.getElementById('pagination-warning');
+  if (el) el.remove();
 }
 
 async function doLogin() {
@@ -484,10 +511,6 @@ async function loadIssues() {
     document.getElementById('issue-list-area').innerHTML = `<div class="empty-msg">불러오기 실패: ${escapeHtml(e.message)}</div>`;
     return;
   }
-  renderIssues();
-}
-
-function filterIssues() {
   renderIssues();
 }
 

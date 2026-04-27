@@ -445,8 +445,11 @@ async function handleAdminIssues(req: Request, env: Env) {
   if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
 
   const url = new URL(req.url);
-  const state = url.searchParams.get('state') || 'open';
-  const page  = url.searchParams.get('page') || '1';
+  const stateRaw = url.searchParams.get('state') || 'open';
+  const state = ['open', 'closed', 'all'].includes(stateRaw) ? stateRaw : 'open';
+  const pageRaw = url.searchParams.get('page') || '1';
+  const pageNum = Number.parseInt(pageRaw, 10);
+  const page = Number.isFinite(pageNum) && pageNum >= 1 && pageNum <= 50 ? pageNum : 1;
 
   const ghRes = await fetch(
     `https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=${state}&per_page=100&page=${page}`,
