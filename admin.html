@@ -1003,9 +1003,11 @@ const STD_HEADINGS = [
 function _escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function extractSection(body, heading) {
   if (!body) return '';
+  // 'm' 플래그 제거 — 'm' 모드에서 $는 줄 끝에 매치되어 첫 줄 직후
+  // 매치가 종료되는 버그가 있었음. input end만 종료자로 인정.
   const enders = STD_HEADINGS.filter(h => h !== heading)
                               .map(h => `\\n## ${_escRe(h)}`).join('|');
-  const re = new RegExp(`## ${_escRe(heading)}\\s*\\n([\\s\\S]*?)(?=${enders}|\\n---\\n|$)`, 'm');
+  const re = new RegExp(`## ${_escRe(heading)}\\s*\\n([\\s\\S]*?)(?=${enders}|\\n---\\n|$(?![\\s\\S]))`);
   const m = body.match(re);
   return m ? m[1].trim() : '';
 }
@@ -1077,7 +1079,9 @@ function extractEvents(text) {
 }
 
 function buildAutoMd(issue) {
-  const body = issue.body || '';
+  // GitHub API issue.body는 \r\n 라인엔딩 — 정규식 [^\n]*가 \r 포함하지
+  // 않도록 정규화.
+  const body = (issue.body || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const title   = extractSection(body, '자료 제목') || issue.title.replace('[자료 제출] ','');
   const type    = extractSection(body, '자료 종류');
   const date    = extractSection(body, '자료 연도');

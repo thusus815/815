@@ -17,11 +17,14 @@ const STD_HEADINGS = [
 ];
 
 export function parseSection(body: string, heading: string): string {
+  // 'm' 플래그를 쓰지 않는다 — 'm' 모드에서 $는 줄 끝에 매치되어
+  // 본문 첫 줄 직후 즉시 종료되는 버그가 있었음. 여기서는 input end만
+  // 종료자로 인정한다.
   const enders = STD_HEADINGS
     .filter(h => h !== heading)
     .map(h => `\\n## ${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
     .join('|');
-  const re = new RegExp(`## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=${enders}|\\n---\\n|$)`, 'm');
+  const re = new RegExp(`## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=${enders}|\\n---\\n|$(?![\\s\\S]))`);
   const m = body.match(re);
   return m ? m[1].trim() : '';
 }
@@ -138,7 +141,9 @@ export function extractSourceUrl(note: string, source: string): string {
 }
 
 export function buildMdFromIssue(issue: any): ConvertResult {
-  const body: string = issue.body || '';
+  // GitHub API의 issue.body는 \r\n 라인엔딩을 사용. parseSection·코드블록
+  // 정규식의 [^\n]* 가 \r를 포함하지 않게 본문 진입 시 정규화.
+  const body: string = (issue.body || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const title    = parseSection(body, '자료 제목') || (issue.title || '').replace('[자료 제출] ', '');
   const type     = parseSection(body, '자료 종류');
   const date     = parseSection(body, '자료 연도');
