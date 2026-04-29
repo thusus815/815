@@ -591,6 +591,92 @@ async function handleAdminApprove(req: Request, env: Env) {
   return Response.json({ ok: true, file_path: filePath, commit_url: created.commit?.html_url });
 }
 
+// ─── 사후 수정/보충 (이미 승인된 .md를 새 내용으로 덮어쓰기) ──────
+async function handleAdminUpdate(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const { issue_number, md, kind, comment } = await req.json() as {
+    issue_number: number; md: string; kind?: string; comment?: string;
+  };
+  if (!issue_number || !md) return Response.json({ error: 'issue_number, md required' }, { status: 400 });
+
+  const raw = await env.REVIEW_STATE.get(`approved:${issue_number}`);
+  if (!raw) return Response.json({ error: '승인 기록 없음 (이미 회수되었거나 KV 만료).' }, { status: 404 });
+  const { file_path } = JSON.parse(raw) as { file_path: string };
+
+  const ghHeaders = {
+    Authorization: `token ${env.GITHUB_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'my-31-admin',
+  };
+
+  // 1. 기존 파일 SHA 조회
+  const getRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    { headers: ghHeaders },
+  );
+  if (!getRes.ok) return Response.json({ error: `파일 조회 실패: ${getRes.status}` }, { status: 502 });
+  const fileData = await getRes.json() as { sha: string };
+
+  // 2. 새 내용 PUT (덮어쓰기)
+  const content = btoa(unescape(encodeURIComponent(md)));
+  const action = kind === 'supplement' ? '보충' : '수정';
+  const putRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    {
+      method: 'PUT', headers: ghHeaders,
+      body: JSON.stringify({
+        message: `chore: 자료 ${action} #${issue_number}${comment ? ` - ${comment}` : ''}`,
+        content, sha: fileData.sha,
+      }),
+    },
+  );
+  if (!putRes.ok) {
+    const err = await putRes.text();
+    return Response.json({ error: `파일 갱신 실패: ${putRes.status}`, detail: err.slice(0, 300) }, { status: 502 });
+  }
+  const putData = await putRes.json() as any;
+
+  // 3. 이슈에 수정/보충 코멘트
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`,
+    {
+      method: 'POST', headers: ghHeaders,
+      body: JSON.stringify({
+        body: `✏️ **자료가 ${action}되었습니다.**\n\n- 경로: \`${file_path}\`\n${comment ? `- 메모: ${comment}\n` : ''}- 커밋: ${putData.commit?.html_url || ''}`,
+      }),
+    },
+  );
+
+  return Response.json({ ok: true, file_path, commit_url: putData.commit?.html_url, action });
+}
+
+// closed 이슈의 현재 .md 내용을 GitHub에서 가져와 반환 (수정 시 사용)
+async function handleAdminGetCurrentMd(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const url = new URL(req.url);
+  const issue_number = Number(url.searchParams.get('issue_number'));
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  const raw = await env.REVIEW_STATE.get(`approved:${issue_number}`);
+  if (!raw) return Response.json({ error: '승인 기록 없음' }, { status: 404 });
+  const { file_path } = JSON.parse(raw) as { file_path: string };
+
+  const getRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    { headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-admin' } },
+  );
+  if (!getRes.ok) return Response.json({ error: `파일 조회 실패: ${getRes.status}` }, { status: 502 });
+  const data = await getRes.json() as { content: string };
+  // base64 → utf-8
+  const md = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+  return Response.json({ ok: true, md, file_path });
+}
+
 // ─── 사후 회수 (검토자 반려 의견 후 관리자가 결정) ──────────────────
 async function handleAdminRecall(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
@@ -1036,6 +1122,10 @@ export default {
         res = await handleNormalizeSpacing(req, env);
       } else if (url.pathname === "/admin/recall" && req.method === "POST") {
         res = await handleAdminRecall(req, env);
+      } else if (url.pathname === "/admin/update" && req.method === "POST") {
+        res = await handleAdminUpdate(req, env);
+      } else if (url.pathname === "/admin/get-md" && req.method === "GET") {
+        res = await handleAdminGetCurrentMd(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {
