@@ -213,6 +213,13 @@ export function buildMdFromIssue(issue: any): ConvertResult {
   const schoolTokens: string[] = [];
   const eventTokens: string[] = [];
   const orgTokens: string[] = [];
+  // 일반명사(학생·교사·청년 등)를 인물로 오인식하지 않도록 제외 목록
+  const NON_PERSON_WORDS = new Set([
+    '학생', '교사', '경찰', '주민', '청년', '관계자', '인사', '동지',
+    '여러분', '학교', '직원', '교원', '당국', '관청', '동민', '일동',
+    '소년', '소녀', '부인', '농민', '노동자', '사람', '시민', '검사', '판사',
+    '간부', '회원', '대표', '단원', '인원', '전부', '일부', '명단',
+  ]);
   if (persons && persons !== '(미기재)') {
     const tokens = persons.split(/[,，、·\n]+/).map(s => s.trim()).filter(Boolean);
     for (const t of tokens) {
@@ -222,22 +229,39 @@ export function buildMdFromIssue(issue: any): ConvertResult {
       if (/(학교|고보|고등학교|보습)/.test(k)) schoolTokens.push(k);
       else if (/(운동|항쟁|시위|맹휴|동맹휴학|사건|격문)/.test(k)) eventTokens.push(k);
       else if (/(회|단|협의|동맹|위원|조합|총독부|보안|경찰)/.test(k)) orgTokens.push(k);
-      else if (/^[가-힣]{2,5}$/.test(k)) personTokens.push(k);
-      else orgTokens.push(k);  // 분류 모호 시 기관 카테고리로
+      else if (/^[가-힣]{2,5}$/.test(k) && !NON_PERSON_WORDS.has(k)) personTokens.push(k);
+      else if (!NON_PERSON_WORDS.has(k)) orgTokens.push(k);
     }
   }
 
   // 본문에 등장하는 인물 한자명을 한글로 추출 (예: "박창신(朴昌信)" → "박창신")
   const inlinePersons = new Set<string>();
-  for (const m of (note || '').matchAll(/([가-힣]{2,5})\s*\([一-龥\s]{2,5}\)/g)) {
-    if (m[1] !== koName) inlinePersons.add(m[1]);
+  for (const m of (note || '').matchAll(/([가-힣]{2,5})\s*\([一-龥\s]{1,8}\)/g)) {
+    if (m[1] !== koName && !NON_PERSON_WORDS.has(m[1])) inlinePersons.add(m[1]);
   }
   for (const p of inlinePersons) if (!personTokens.includes(p)) personTokens.push(p);
 
+  // 본문에서 학교명 다중 추출 (한자 원문 안의 한글 변환 본문 모두 대상)
+  for (const m of (note || '').matchAll(/[가-힣]{2,8}(?:공립)?(?:보통|국민|소|중|고등|상업|농업(?:보습)?|보습)?(?:학교|고등학교|고보)/g)) {
+    if (m[0].length >= 4 && !schoolTokens.includes(m[0])) schoolTokens.push(m[0]);
+  }
   // 학교 검출 결과 통합 — '충남 당진군 면천면 면천공립보통학교' 같은 긴 표기에서 마지막 학교명만 추출
   if (school) {
     const cleanSchool = (school.match(/[가-힣]{2,8}(?:공립|공립보통|공립농업|공립상업)?(?:보통|국민|소|중|고등|상업|농업(?:보습)?|보습)?(?:학교|고등학교|고보)/g) || []).pop() || school;
     if (cleanSchool && !schoolTokens.includes(cleanSchool)) schoolTokens.unshift(cleanSchool);
+  }
+  // 본문에서 사건·운동 키워드 추출 (제목 + 본문 합산)
+  const eventBlob = `${title} ${note || ''}`;
+  for (const m of eventBlob.matchAll(/(?:[가-힣]{2,6}\s*)?(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문\s*사건|항쟁|운동|사건)/g)) {
+    const e = m[0].trim();
+    if (e.length >= 3 && e.length <= 14 && !eventTokens.includes(e)) eventTokens.push(e);
+  }
+  // 본문에서 지역명(시·군·면·리 단위) 한글 추출
+  for (const m of (note || '').matchAll(/[가-힣]{2,4}(?:군|면|리|읍|동)/g)) {
+    if (!orgTokens.includes(m[0]) && m[0].length >= 3) {
+      // 지역은 별도 카테고리지만 이번에는 orgTokens에 합치지 않고 독립 처리.
+      // (현재 frontmatter 구조는 단일 region만 있으니 토큰만 누적해 두고 본문에는 표기 안 함.)
+    }
   }
 
   // 그래프 카테고리 친화 tags (build_graph.py categorize() 매칭)
@@ -306,24 +330,60 @@ export function buildMdFromIssue(issue: any): ConvertResult {
     lines.push(note || '(없음)');
     lines.push('');
   } else {
+    // 신문기사 타입: note에서 한자 본문 / 한글 변환 코드블록 추출
+    const isNewspaper = kind === '신문' || /신문|기사/.test(type);
+    let hanjaText = '';
+    let koreanText = '';
+    let naverUrl = sourceUrl;
+    if (isNewspaper && note) {
+      const hanjaRe = /## 본문[^\n]*?(?:\d{4}|한자)[^\n]*\n+```\n?([\s\S]*?)\n?```/m;
+      const koreanRe = /## 본문[^\n]*?한글[^\n]*\n+```\n?([\s\S]*?)\n?```/m;
+      const hm = note.match(hanjaRe); if (hm) hanjaText = hm[1].trim();
+      const km = note.match(koreanRe); if (km) koreanText = km[1].trim();
+      const nm = note.match(/https:\/\/newslibrary\.naver\.com\/viewer\/[^\s\)\"<>]+/);
+      if (nm) naverUrl = nm[0];
+    }
     lines.push('## 자료 정보');
     lines.push('');
     lines.push(`- **자료 종류**: ${type || '미상'}`);
     lines.push(`- **연도**: ${date || '미상'}`);
     lines.push(`- **지역**: ${region || '미상'}`);
     lines.push(`- **출처**: ${source || '미기재'}`);
-    if (sourceUrl) lines.push(`- **출처 URL**: ${sourceUrl}`);
+    if (naverUrl) lines.push(`- **원기사 URL**: ${naverUrl}`);
     lines.push(`- **제출자**: ${submitterLine}`);
     lines.push(`- **원본 이슈**: [#${issue.number}](${issue.html_url})`);
     lines.push('');
-    lines.push('## 관련 인물·사건');
-    lines.push('');
-    lines.push(persons || '(미기재)');
-    lines.push('');
-    lines.push('## 본문 / 설명');
-    lines.push('');
-    lines.push(note || '(없음)');
-    lines.push('');
+    if (hanjaText) {
+      lines.push('## 본문 — 원문 (한자)');
+      lines.push('');
+      lines.push('```');
+      lines.push(hanjaText);
+      lines.push('```');
+      lines.push('');
+    }
+    if (koreanText) {
+      lines.push('## 본문 — 한글 변환 (네이버 OCR)');
+      lines.push('');
+      lines.push('```');
+      lines.push(koreanText);
+      lines.push('```');
+      lines.push('');
+    }
+    if (!hanjaText && !koreanText) {
+      lines.push('## 관련 인물·사건');
+      lines.push('');
+      lines.push(persons || '(미기재)');
+      lines.push('');
+      lines.push('## 본문 / 설명');
+      lines.push('');
+      lines.push(note || '(없음)');
+      lines.push('');
+    } else if (persons && persons !== '(미기재)') {
+      lines.push('## 관련 인물·사건');
+      lines.push('');
+      lines.push(persons);
+      lines.push('');
+    }
   }
   // ── AGENTS.md §4-3 표준 섹션: 위키링크 (그래프 엣지 생성용) ──
   // build_graph.py가 본문 [[link]]만 엣지로 인식하므로, 관계를 [[]]로 표기.

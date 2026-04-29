@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>관리자 — 나의 3·1</title>
 <style>
   :root {
@@ -969,6 +972,61 @@ function regionToFolder(region) {
   return '04-지역/미분류';
 }
 
+// note(설명·메모) 안에서 ## 본문 — ... 다음 ``` ... ``` 코드블록을 추출.
+// 신문기사 타입에서 한자 원문 / 한글 변환 본문이 코드블록으로 들어있다.
+function extractCodeBlockUnder(noteText, headingPattern) {
+  if (!noteText) return '';
+  const re = new RegExp(`## ${headingPattern}[^\\n]*\\n+\`\`\`\\n?([\\s\\S]*?)\\n?\`\`\``, 'm');
+  const m = noteText.match(re);
+  return m ? m[1].trim() : '';
+}
+
+// note에서 네이버 원기사 URL 추출.
+function extractNaverUrl(noteText) {
+  if (!noteText) return '';
+  const m = noteText.match(/https:\/\/newslibrary\.naver\.com\/viewer\/[^\s\)\"<>]+/);
+  return m ? m[0] : '';
+}
+
+// 일반명사(학생·교사 등) — 인물 오인식 방지
+const NON_PERSON_WORDS = new Set([
+  '학생', '교사', '경찰', '주민', '청년', '관계자', '인사', '동지',
+  '여러분', '학교', '직원', '교원', '당국', '관청', '동민', '일동',
+  '소년', '소녀', '부인', '농민', '노동자', '사람', '시민', '검사', '판사',
+  '간부', '회원', '대표', '단원', '인원', '전부', '일부', '명단',
+]);
+
+// note 본문에서 한글(한자) 패턴으로 인물명 추출
+function extractInlinePersons(note) {
+  const out = new Set();
+  if (!note) return out;
+  for (const m of note.matchAll(/([가-힣]{2,5})\s*\([一-龥\s]{1,8}\)/g)) {
+    if (!NON_PERSON_WORDS.has(m[1])) out.add(m[1]);
+  }
+  return out;
+}
+
+// note 본문에서 학교명 다중 추출
+function extractSchools(text) {
+  const out = new Set();
+  if (!text) return out;
+  for (const m of text.matchAll(/[가-힣]{2,8}(?:공립)?(?:보통|국민|소|중|고등|상업|농업(?:보습)?|보습)?(?:학교|고등학교|고보)/g)) {
+    if (m[0].length >= 4) out.add(m[0]);
+  }
+  return out;
+}
+
+// 사건·운동 키워드 추출
+function extractEvents(text) {
+  const out = new Set();
+  if (!text) return out;
+  for (const m of text.matchAll(/(?:[가-힣]{2,6}\s*)?(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문\s*사건|항쟁|운동|사건)/g)) {
+    const e = m[0].trim();
+    if (e.length >= 3 && e.length <= 14) out.add(e);
+  }
+  return out;
+}
+
 function buildAutoMd(issue) {
   const body = issue.body || '';
   const title   = extractSection(body, '자료 제목') || issue.title.replace('[자료 제출] ','');
@@ -981,22 +1039,79 @@ function buildAutoMd(issue) {
   const files   = extractSection(body, '첨부 파일 목록');
   const sub     = (body.match(/^제출자: (.+)$/m) || [])[1] || '';
 
-  return [
-    `# ${title}`,``,
+  // 신문기사 타입: note에 ## 본문 — 한자 / ## 본문 — 한글 변환 코드블록이 있음.
+  const isNewspaper = /신문|기사/.test(type) || /신문기사/.test(title);
+  const hanjaText = isNewspaper ? extractCodeBlockUnder(note, '본문\\s*[—-]+\\s*\\d{4}|본문\\s*[—-]+\\s*한자|본문\\s*\\(?한자') : '';
+  const koreanText = isNewspaper ? extractCodeBlockUnder(note, '본문\\s*[—-]+\\s*한글|본문\\s*\\(?한글') : '';
+  const naverUrl = isNewspaper ? extractNaverUrl(note) : '';
+  const issueImg = (note.match(/!\[[^\]]*\]\((https?:\/\/[^\)]+)\)/) || [])[1] || '';
+
+  // 인물·학교·사건 자동 추출 (note 본문 + persons 필드)
+  const personSet = extractInlinePersons(note);
+  const schoolSet = extractSchools(note);
+  const eventSet = extractEvents(`${title} ${note}`);
+  // persons 필드도 고려
+  if (persons && persons !== '(미기재)') {
+    persons.split(/[,，、·\n]+/).map(s => s.trim()).filter(Boolean).forEach(t => {
+      const k = t.replace(/\([^)]*\)/g, '').replace(/[一-龥]+/g, '').trim();
+      if (!k || NON_PERSON_WORDS.has(k)) return;
+      if (/(학교|고보|고등학교|보습)/.test(k)) schoolSet.add(k);
+      else if (/(운동|항쟁|시위|맹휴|동맹휴학|사건|격문)/.test(k)) eventSet.add(k);
+      else if (/^[가-힣]{2,5}$/.test(k)) personSet.add(k);
+    });
+  }
+
+  const lines = [
+    `# ${title}`, ``,
+    `## 자료 정보`, ``,
     `- **자료 종류**: ${type || '미상'}`,
     `- **연도**: ${date || '미상'}`,
     `- **지역**: ${region || '미상'}`,
     `- **출처**: ${source || '미기재'}`,
-    `- **제출자**: ${sub}`,
-    `- **원본 이슈**: [#${issue.number}](${issue.html_url})`,``,
-    `---`,``,
-    `## 관련 인물·사건`,``,
-    persons || '(미기재)',``,
-    `## 설명·메모`,``,
-    note || '(없음)',``,
-    `## 첨부 파일`,``,
-    files || '(없음)',
-  ].join('\n');
+  ];
+  if (naverUrl) lines.push(`- **원기사**: [네이버 뉴스라이브러리](${naverUrl})`);
+  lines.push(`- **제출자**: ${sub}`);
+  lines.push(`- **원본 이슈**: [#${issue.number}](${issue.html_url})`);
+  lines.push(``);
+
+  if (issueImg) {
+    lines.push(`## 기사 이미지`, ``, `![${title}](${issueImg})`, ``);
+  }
+
+  if (hanjaText) {
+    lines.push(`## 본문 — 원문 (한자)`, ``, '```', hanjaText, '```', ``);
+  }
+  if (koreanText) {
+    lines.push(`## 본문 — 한글 변환 (네이버 OCR)`, ``, '```', koreanText, '```', ``);
+  }
+  if (!hanjaText && !koreanText) {
+    lines.push(`## 설명·메모`, ``, note || '(없음)', ``);
+  }
+
+  // 옵시디언 그래프 노드 생성을 위한 [[wikilink]] 섹션
+  if (personSet.size) {
+    lines.push(`## 관련 인물`, ``);
+    [...personSet].forEach(p => lines.push(`- [[${p}]]`));
+    lines.push(``);
+  }
+  if (schoolSet.size) {
+    lines.push(`## 관련 학교`, ``);
+    [...schoolSet].forEach(s => lines.push(`- [[${s}]]`));
+    lines.push(``);
+  }
+  if (eventSet.size) {
+    lines.push(`## 관련 사건`, ``);
+    [...eventSet].forEach(e => lines.push(`- [[${e}]]`));
+    lines.push(``);
+  }
+  // 지역 백링크
+  const regionMatch = region && region.match(/([가-힣]{2,3}(?:시|군|구|도))/);
+  if (regionMatch) {
+    lines.push(`## 관련 지역`, ``, `- [[${regionMatch[1]}]]`, ``);
+  }
+
+  lines.push(`## 첨부 파일`, ``, files || '(없음)');
+  return lines.join('\n');
 }
 
 function timeAgo(iso) {
