@@ -503,8 +503,22 @@ async function handleAdminIssues(req: Request, env: Env) {
     `https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=${state}&per_page=100&page=${page}`,
     { headers: { Authorization: `token ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-admin' } }
   );
-  const issues = await ghRes.json();
-  return Response.json(issues);
+  const issues = await ghRes.json() as any[];
+  if (!Array.isArray(issues)) return Response.json(issues);
+
+  // 각 이슈에 KV의 review state 부착 (GitHub 라벨 동기화가 실패해도
+  // 검토자 검토완료/수정필요 등 상태가 admin에 정상 노출되도록).
+  const enriched = await Promise.all(issues.map(async (iss) => {
+    const rs = await getReviewState(env, iss.number);
+    return {
+      ...iss,
+      review_state: rs.status,
+      review_suggested_md: !!rs.suggested_md,
+      review_last_reviewer: rs.last_reviewer || null,
+      review_updated_at: rs.updated_at || null,
+    };
+  }));
+  return Response.json(enriched);
 }
 
 async function handleAdminApprove(req: Request, env: Env) {

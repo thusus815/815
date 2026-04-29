@@ -392,7 +392,18 @@ const REVIEW_LABEL_MAP = {
 };
 const REVIEW_NONE = { key: 'none', text: '🆕 미검토', cls: 'badge-review-none' };
 
+// KV review state(authoritative) → GitHub 라벨(2차) → 미검토 순으로 판정.
+// 검토자가 review.html에서 라벨을 부여한 시점에 token이 무효였으면 GitHub
+// 라벨 동기화가 실패할 수 있음. 그래도 KV에는 정상 저장되므로 그것을 우선.
+const REVIEW_STATE_MAP = {
+  'ok': REVIEW_LABEL_MAP['검토완료'],
+  'edit_needed': REVIEW_LABEL_MAP['수정필요'],
+  'reroute_suggested': REVIEW_LABEL_MAP['분류재검토'],
+  'reject_suggested': REVIEW_LABEL_MAP['반려추천'],
+};
 function reviewLabelOf(issue) {
+  const rs = issue.review_state;
+  if (rs && REVIEW_STATE_MAP[rs]) return REVIEW_STATE_MAP[rs];
   const labelNames = (issue.labels || []).map(l => typeof l === 'string' ? l : l.name);
   for (const name of ['검토완료','수정필요','분류재검토','반려추천']) {
     if (labelNames.includes(name)) return REVIEW_LABEL_MAP[name];
