@@ -578,7 +578,90 @@ async function handleAdminApprove(req: Request, env: Env) {
     }
   );
 
+  // 사후 회수를 위한 승인 기록 저장 (KV)
+  await env.REVIEW_STATE.put(
+    `approved:${issue_number}`,
+    JSON.stringify({
+      folder, filename, file_path: filePath,
+      commit_url: created.commit?.html_url,
+      approved_at: Date.now(),
+    }),
+  );
+
   return Response.json({ ok: true, file_path: filePath, commit_url: created.commit?.html_url });
+}
+
+// ─── 사후 회수 (검토자 반려 의견 후 관리자가 결정) ──────────────────
+async function handleAdminRecall(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const { issue_number, reason } = await req.json() as { issue_number: number; reason?: string };
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  // 승인 기록 조회
+  const raw = await env.REVIEW_STATE.get(`approved:${issue_number}`);
+  if (!raw) return Response.json({ error: '이 이슈의 승인 기록을 찾을 수 없습니다 (이미 회수되었거나 KV 만료).' }, { status: 404 });
+  const { file_path } = JSON.parse(raw) as { file_path: string };
+
+  const ghHeaders = {
+    Authorization: `token ${env.GITHUB_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'my-31-admin',
+  };
+
+  // 1. 현재 파일 SHA 조회 (DELETE 시 필요)
+  const getRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    { headers: ghHeaders },
+  );
+  if (!getRes.ok) {
+    return Response.json({ error: `파일 조회 실패: ${getRes.status} (이미 삭제되었을 수 있음)`, file_path }, { status: 502 });
+  }
+  const fileData = await getRes.json() as { sha: string };
+
+  // 2. GitHub에서 .md 삭제
+  const delRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    {
+      method: 'DELETE',
+      headers: ghHeaders,
+      body: JSON.stringify({
+        message: `chore: 자료 회수 #${issue_number} (사후 반려)${reason ? ` - ${reason}` : ''}`,
+        sha: fileData.sha,
+      }),
+    },
+  );
+  if (!delRes.ok) {
+    const err = await delRes.text();
+    return Response.json({ error: `파일 삭제 실패: ${delRes.status}`, detail: err.slice(0, 300) }, { status: 502 });
+  }
+
+  // 3. 이슈 reopen
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    {
+      method: 'PATCH', headers: ghHeaders,
+      body: JSON.stringify({ state: 'open', state_reason: 'reopened' }),
+    },
+  );
+
+  // 4. 회수 코멘트 추가
+  await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`,
+    {
+      method: 'POST', headers: ghHeaders,
+      body: JSON.stringify({
+        body: `🔄 **자료가 사후 반려에 의해 회수되었습니다.**\n\n- 삭제된 파일: \`${file_path}\`\n${reason ? `- 사유: ${reason}\n` : ''}- 이슈가 다시 열렸습니다. 수정 후 재승인 가능합니다.`,
+      }),
+    },
+  );
+
+  // 5. KV 승인 기록 삭제
+  await env.REVIEW_STATE.delete(`approved:${issue_number}`);
+
+  return Response.json({ ok: true, file_path });
 }
 
 async function handleAdminReject(req: Request, env: Env) {
@@ -951,6 +1034,8 @@ export default {
         res = await handleAdminAnalyze(req, env);
       } else if (url.pathname === "/admin/normalize-spacing" && req.method === "POST") {
         res = await handleNormalizeSpacing(req, env);
+      } else if (url.pathname === "/admin/recall" && req.method === "POST") {
+        res = await handleAdminRecall(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {

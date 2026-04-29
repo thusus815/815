@@ -353,6 +353,7 @@
       <div class="action-btns">
         <button class="btn-approve" id="btn-approve" onclick="doApprove()">✅ 승인 · 아카이브 반영</button>
         <button class="btn-outline" onclick="toggleRejectBox()">⚠️ 반려</button>
+        <button class="btn-outline" id="btn-recall" onclick="doRecall()" style="display:none;background:#5a2a2a;border-color:#a05050;color:#ffb0b0">🔄 회수 (사후 반려)</button>
       </div>
 
       <textarea class="reject-reason" id="reject-reason" rows="3" placeholder="반려 사유를 입력해주세요..."></textarea>
@@ -680,8 +681,54 @@ function openModal(num) {
   document.getElementById('btn-approve').disabled = false;
   document.getElementById('btn-reject').disabled = false;
 
+  // 처리 완료(closed) 탭: 회수 버튼 노출, 승인 버튼 숨김
+  const isClosed = currentTab === 'closed';
+  document.getElementById('btn-recall').style.display = isClosed ? 'inline-flex' : 'none';
+  document.getElementById('btn-approve').style.display = isClosed ? 'none' : 'inline-flex';
+
   document.getElementById('modal-backdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// ─── 사후 회수 (closed 이슈 + 검토자 반려추천 후) ────────────
+async function doRecall() {
+  if (!currentIssue) return;
+  const reviewLabel = reviewLabelOf(currentIssue);
+  const labelHint = reviewLabel.key === 'reject' ? ' (검토자 반려추천)' :
+                    reviewLabel.key === 'edit'   ? ' (검토자 수정필요)' :
+                    reviewLabel.key === 'reroute'? ' (검토자 분류재검토)' : '';
+  const reason = prompt(`회수 사유를 입력하세요${labelHint}\n\n` +
+                        `회수 시:\n  · GitHub Pages에서 해당 .md 삭제\n  · 이슈 다시 열림 (open)\n  · 회수 코멘트 추가\n\n사유:`,
+                        reviewLabel.key === 'reject' ? '검토자 반려추천' : '');
+  if (!reason) return;
+  if (!confirm(`#${currentIssue.number} 자료를 회수합니다.\n\n[GitHub Pages에서 .md 파일 삭제 + 이슈 reopen]\n\n진행할까요?`)) return;
+
+  document.getElementById('btn-recall').disabled = true;
+  document.getElementById('action-result').textContent = '회수 중...';
+  document.getElementById('action-result').className = 'action-result';
+
+  try {
+    const res = await fetch(`${WORKER_URL}/admin/recall`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+      body: JSON.stringify({ issue_number: currentIssue.number, reason }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('action-result').className = 'action-result ok';
+      document.getElementById('action-result').innerHTML =
+        `🔄 회수 완료 — <code>${escapeHtml(data.file_path)}</code> 삭제됨, 이슈 재오픈`;
+      allIssues = allIssues.filter(i => i.number !== currentIssue.number);
+    } else {
+      document.getElementById('action-result').className = 'action-result err';
+      document.getElementById('action-result').textContent = `❌ 회수 실패: ${data.error}${data.detail ? ' / ' + data.detail : ''}`;
+      document.getElementById('btn-recall').disabled = false;
+    }
+  } catch (e) {
+    document.getElementById('action-result').className = 'action-result err';
+    document.getElementById('action-result').textContent = `❌ 네트워크 오류: ${e.message}`;
+    document.getElementById('btn-recall').disabled = false;
+  }
 }
 
 function buildAttachments(fileSection) {
