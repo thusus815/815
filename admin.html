@@ -697,7 +697,7 @@ async function bulkApproveSelected() {
         SELECTED.delete(issue.number);
       } else {
         fail++;
-        failed.push({ number: issue.number, title: issue.title, error: data.error });
+        failed.push({ number: issue.number, title: issue.title, error: data.error, detail: (data.detail||'').slice(0, 200) });
       }
     } catch (e) {
       fail++;
@@ -710,7 +710,7 @@ async function bulkApproveSelected() {
   box.style.color = fail === 0 ? '#4ade80' : '#fbbf24';
   let msg = `완료: ✅${ok} / ❌${fail} (총 ${targets.length})`;
   if (fail) {
-    msg += '\n실패 항목:\n' + failed.slice(0, 5).map(f => `  #${f.number} — ${f.error}`).join('\n');
+    msg += '\n실패 항목 (상세):\n' + failed.slice(0, 5).map(f => `  #${f.number} — ${f.error}${f.detail ? '\n      ↳ ' + f.detail : ''}`).join('\n');
     if (failed.length > 5) msg += `\n  ... (${failed.length - 5}건 더)`;
   }
   box.textContent = msg;
@@ -1147,7 +1147,7 @@ async function bulkApproveFiltered() {
         allIssues = allIssues.filter(x => x.number !== issue.number);
       } else {
         fail++;
-        failed.push({ number: issue.number, title: issue.title, error: data.error });
+        failed.push({ number: issue.number, title: issue.title, error: data.error, detail: (data.detail||'').slice(0, 200) });
       }
     } catch (e) {
       fail++;
@@ -1161,7 +1161,7 @@ async function bulkApproveFiltered() {
   box.style.color = fail === 0 ? '#4ade80' : '#fbbf24';
   let msg = `완료: ✅${ok} / ❌${fail} (총 ${filtered.length})`;
   if (fail) {
-    msg += '\n실패 항목:\n' + failed.slice(0, 5).map(f => `  #${f.number} — ${f.error}`).join('\n');
+    msg += '\n실패 항목 (상세):\n' + failed.slice(0, 5).map(f => `  #${f.number} — ${f.error}${f.detail ? '\n      ↳ ' + f.detail : ''}`).join('\n');
     if (failed.length > 5) msg += `\n  ... (${failed.length - 5}건 더)`;
   }
   box.textContent = msg;
