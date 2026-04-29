@@ -677,6 +677,16 @@ async function handleAdminGetCurrentMd(req: Request, env: Env) {
   return Response.json({ ok: true, md, file_path });
 }
 
+// admin이 특정 이슈의 검토자 review state 조회 (검토자 제안 포함)
+async function handleAdminGetReviewState(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  const url = new URL(req.url);
+  const issue_number = Number(url.searchParams.get('issue_number'));
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+  const st = await getReviewState(env, issue_number);
+  return Response.json({ ok: true, review: st });
+}
+
 // ─── 사후 회수 (검토자 반려 의견 후 관리자가 결정) ──────────────────
 async function handleAdminRecall(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
@@ -921,6 +931,10 @@ async function handleReviewLogin(req: Request, env: Env) {
 interface ReviewState {
   status: 'pending' | 'ok' | 'edit_needed' | 'reject_suggested' | 'reroute_suggested';
   comments: Array<{ reviewer: string; text: string; ts: number }>;
+  suggested_md?: string;
+  suggested_at?: number;
+  suggested_by?: string;
+  suggested_kind?: 'edit' | 'supplement';
   last_reviewer?: string;
   updated_at?: number;
 }
@@ -985,6 +999,31 @@ async function handleReviewIssues(req: Request, env: Env) {
       },
     }
   );
+}
+
+// 검토자가 web에서 .md 수정 제안 제출 (GitHub 직접 접근 없이)
+async function handleReviewSuggestEdit(req: Request, env: Env) {
+  const sess = await authReviewer(req, env);
+  if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
+
+  const { issue_number, md, kind, note } = await req.json() as {
+    issue_number?: number; md?: string; kind?: 'edit' | 'supplement'; note?: string;
+  };
+  if (!issue_number || !md) return Response.json({ error: 'issue_number, md required' }, { status: 400 });
+
+  const st = await getReviewState(env, issue_number);
+  st.suggested_md = md;
+  st.suggested_at = Date.now();
+  st.suggested_by = sess.name;
+  st.suggested_kind = kind === 'supplement' ? 'supplement' : 'edit';
+  if (note) {
+    st.comments.push({ reviewer: sess.name, text: `[${st.suggested_kind === 'supplement' ? '보충' : '수정'} 제안] ${note}`, ts: Date.now() });
+  }
+  st.last_reviewer = sess.name;
+  st.updated_at = Date.now();
+  await putReviewState(env, issue_number, st);
+
+  return Response.json({ ok: true, kind: st.suggested_kind });
 }
 
 async function handleReviewComment(req: Request, env: Env) {
@@ -1126,6 +1165,8 @@ export default {
         res = await handleAdminUpdate(req, env);
       } else if (url.pathname === "/admin/get-md" && req.method === "GET") {
         res = await handleAdminGetCurrentMd(req, env);
+      } else if (url.pathname === "/admin/review-state" && req.method === "GET") {
+        res = await handleAdminGetReviewState(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {
@@ -1134,6 +1175,8 @@ export default {
         res = await handleReviewComment(req, env);
       } else if (url.pathname === "/review/flag" && req.method === "POST") {
         res = await handleReviewFlag(req, env);
+      } else if (url.pathname === "/review/suggest-edit" && req.method === "POST") {
+        res = await handleReviewSuggestEdit(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))

@@ -322,7 +322,19 @@ function renderTable() {
         <h4>💬 검토 의견 (${iss.review.comments.length})</h4>
         <div class="body comments">${iss.review.comments.map(c => `<div class="c"><div class="meta">${c.reviewer} · ${new Date(c.ts).toLocaleString()}</div>${escapeHtml(c.text)}</div>`).join('')}</div>
       </div>` : ''}
-      <h3 style="margin-top: 16px;">검토 의견 남기기</h3>
+      ${iss.review.suggested_md ? `
+      <div class="panel" style="margin-top: 12px; border-color:#7a9b6e; background:#f0f8ed;">
+        <h4>📝 이전 수정 제안 (${iss.review.suggested_kind === 'supplement' ? '보충' : '수정'}) — ${escapeHtml(iss.review.suggested_by || '')} / ${iss.review.suggested_at ? new Date(iss.review.suggested_at).toLocaleString() : ''}</h4>
+        <div class="body"><pre style="max-height:200px;overflow:auto">${escapeHtml(iss.review.suggested_md)}</pre></div>
+      </div>` : ''}
+      <h3 style="margin-top: 16px;">📝 .md 수정·보충 제안 (관리자에게 전달, GitHub 직접 수정 X)</h3>
+      <p style="font-size:12px;color:var(--muted);margin:4px 0">아래 텍스트박스는 위 '자동 분류 미리보기 .md'를 기본값으로 채워줍니다. 직접 고치거나 보충해서 제안 보내기를 누르면 관리자 화면으로 전달됩니다.</p>
+      <textarea class="md-suggest-input" data-num="${iss.number}" rows="14" style="width:100%;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px">${escapeHtml(iss.preview ? iss.preview.md : '')}</textarea>
+      <div class="actions" style="margin-bottom:12px">
+        <button class="btn-edit" data-action="suggest_edit" data-kind="edit" data-num="${iss.number}" style="background:#3a6a8a;color:#fff;border:none">✏️ 수정 제안 보내기</button>
+        <button class="btn-edit" data-action="suggest_edit" data-kind="supplement" data-num="${iss.number}" style="background:#2a7a4a;color:#fff;border:none">➕ 보충 제안 보내기</button>
+      </div>
+      <h3 style="margin-top: 16px;">검토 의견 남기기 (라벨 부여)</h3>
       <textarea class="note-input" data-num="${iss.number}" placeholder="이 자료에 대한 의견·수정사항·메모. (선택)"></textarea>
       <div class="actions">
         <button class="btn-ok" data-action="ok" data-num="${iss.number}">✅ 이상 없음</button>
@@ -365,7 +377,20 @@ function renderTable() {
       btn.classList.add('busy');
 
       try {
-        if (action === 'comment') {
+        if (action === 'suggest_edit') {
+          // .md 수정·보충 제안 (kind: 'edit' | 'supplement')
+          const kind = btn.dataset.kind;
+          const md = (tb.querySelector(`textarea.md-suggest-input[data-num="${num}"]`) || {}).value || '';
+          if (!md.trim()) { toast('수정 제안 .md를 입력하세요'); return; }
+          const r = await fetch(`${WORKER_URL}/review/suggest-edit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+            body: JSON.stringify({ issue_number: num, md, kind, note }),
+          });
+          const d = await r.json();
+          if (!r.ok) { toast('실패: ' + d.error); return; }
+          toast((kind === 'supplement' ? '➕ 보충' : '✏️ 수정') + ' 제안 전송 완료 (관리자 검토 대기)');
+        } else if (action === 'comment') {
           if (!note) { toast('의견을 입력하세요'); return; }
           const r = await fetch(`${WORKER_URL}/review/comment`, {
             method: 'POST',

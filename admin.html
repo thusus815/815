@@ -329,6 +329,7 @@
     </div>
 
     <div class="action-section">
+      <div id="suggestion-box" style="display:none;margin-bottom:16px;padding:14px;border-radius:8px;background:#3a3a1f;border:1px solid #a89c54"></div>
       <h3>관리자 처리</h3>
       <div class="path-row">
         <div class="path-group">
@@ -691,8 +692,71 @@ function openModal(num) {
   document.getElementById('btn-approve').style.display = isClosed ? 'none' : 'inline-flex';
   if (isClosed) loadCurrentMdFromGitHub(issue.number);
 
+  // 검토자 수정·보충 제안이 있으면 노란 알림 박스 + 적용 버튼
+  renderSuggestionBox(issue);
+
   document.getElementById('modal-backdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// ─── 검토자 수정·보충 제안 노출 + 적용 ────────────────────
+async function renderSuggestionBox(issue) {
+  const box = document.getElementById('suggestion-box');
+  box.style.display = 'none';
+  box.innerHTML = '';
+  try {
+    const res = await fetch(`${WORKER_URL}/admin/review-state?issue_number=${issue.number}`, {
+      headers: { 'X-Admin-Secret': adminSecret },
+    });
+    const data = await res.json();
+    if (!data.ok || !data.review || !data.review.suggested_md) return;
+    const r = data.review;
+    const action = r.suggested_kind === 'supplement' ? '보충' : '수정';
+    const when = r.suggested_at ? new Date(r.suggested_at).toLocaleString() : '';
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="color:#f5d35a">📝 검토자 ${action} 제안 — ${escapeHtml(r.suggested_by || '')} / ${escapeHtml(when)}</strong>
+        <div style="display:flex;gap:8px">
+          <button class="btn-outline" onclick="applySuggestion()" style="background:#3a6a3a;border-color:#5aa05a;color:#cfe9cf">⚡ 이 제안 그대로 적용</button>
+          <button class="btn-outline" onclick="copySuggestionToEditor()">📋 md-editor에 복사 (편집 후 적용)</button>
+          <button class="btn-outline" onclick="dismissSuggestion()">✕</button>
+        </div>
+      </div>
+      <pre id="suggestion-md" style="max-height:240px;overflow:auto;background:#1a1a0e;padding:8px;border-radius:4px;font-size:12px;white-space:pre-wrap">${escapeHtml(r.suggested_md)}</pre>
+    `;
+  } catch (e) {
+    console.warn('renderSuggestionBox error:', e);
+  }
+}
+
+function copySuggestionToEditor() {
+  const sm = document.getElementById('suggestion-md');
+  if (!sm) return;
+  document.getElementById('md-editor').value = sm.textContent;
+  if (!mdEditorOpen) toggleMdEditor();
+  alert('검토자 제안을 md-editor에 복사했습니다. 편집 후 ✏️ 수정 반영 / ➕ 보충 반영을 누르세요.');
+}
+
+async function applySuggestion() {
+  const sm = document.getElementById('suggestion-md');
+  if (!sm || !currentIssue) return;
+  document.getElementById('md-editor').value = sm.textContent;
+  // closed 이슈면 doUpdate, open이면 doApprove (md_override로 commit)
+  if (currentTab === 'closed') {
+    if (!confirm(`#${currentIssue.number}: 검토자 제안을 그대로 적용해 .md를 갱신합니다.`)) return;
+    document.getElementById('md-editor').value = sm.textContent;
+    if (!mdEditorOpen) toggleMdEditor();
+    doUpdate('edit');
+  } else {
+    if (!confirm(`#${currentIssue.number}: 검토자 제안 .md로 승인 처리합니다.`)) return;
+    if (!mdEditorOpen) toggleMdEditor();
+    doApprove();
+  }
+}
+
+function dismissSuggestion() {
+  document.getElementById('suggestion-box').style.display = 'none';
 }
 
 // ─── 사후 수정·보충 (closed 이슈) ────────────────────────
