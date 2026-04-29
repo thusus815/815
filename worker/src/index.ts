@@ -770,13 +770,20 @@ async function handleReviewIssues(req: Request, env: Env) {
   const sess = await authReviewer(req, env);
   if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
 
-  // 공개 GitHub API로 이슈 목록 가져오기 (검토자는 GH 토큰 없어도 됨)
-  const ghRes = await fetch(
-    'https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=all&per_page=100',
-    { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review' } }
-  );
-  if (!ghRes.ok) return Response.json({ error: 'GitHub API 오류' }, { status: 502 });
-  const issues = await ghRes.json() as any[];
+  // 페이지네이션 — 134건+ 모두 가져오도록 page=1..10 (최대 1000건)
+  const PER_PAGE = 100, MAX_PAGES = 10;
+  const issues: any[] = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const ghRes = await fetch(
+      `https://api.github.com/repos/thusus815/815/issues?labels=%EC%9E%90%EB%A3%8C%EC%A0%9C%EC%B6%9C&state=all&per_page=${PER_PAGE}&page=${page}`,
+      { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review' } }
+    );
+    if (!ghRes.ok) return Response.json({ error: 'GitHub API 오류' }, { status: 502 });
+    const arr = await ghRes.json() as any[];
+    if (!Array.isArray(arr)) return Response.json({ error: 'GitHub API 응답 오류' }, { status: 502 });
+    issues.push(...arr);
+    if (arr.length < PER_PAGE) break;
+  }
 
   // 각 이슈에 자동 분류 미리보기 + 검토 상태 부착
   const enriched = await Promise.all(issues.map(async (iss) => {
@@ -800,7 +807,15 @@ async function handleReviewIssues(req: Request, env: Env) {
     };
   }));
 
-  return Response.json({ ok: true, reviewer: sess.name, issues: enriched });
+  return new Response(
+    JSON.stringify({ ok: true, reviewer: sess.name, issues: enriched }),
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    }
+  );
 }
 
 async function handleReviewComment(req: Request, env: Env) {
