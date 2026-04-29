@@ -563,6 +563,9 @@ function renderSummaryBar() {
   </div>`;
 }
 
+// 선택된 이슈 번호 (체크박스)
+let SELECTED = new Set();
+
 function renderIssueList(issues) {
   const el = document.getElementById('issue-list-area');
   const summary = renderSummaryBar();
@@ -570,7 +573,27 @@ function renderIssueList(issues) {
     el.innerHTML = summary + '<div class="empty-msg">조건에 맞는 자료가 없습니다.</div>';
     return;
   }
-  el.innerHTML = summary + `<div class="issue-list">${issues.map(issue => {
+  // 표시된 이슈 중 SELECTED에 포함된 것만 유지 (필터 변경 시 정리)
+  const visibleNums = new Set(issues.map(i => i.number));
+  for (const n of [...SELECTED]) if (!visibleNums.has(n)) SELECTED.delete(n);
+
+  const allChecked = issues.length > 0 && issues.every(i => SELECTED.has(i.number));
+  const selBar = `
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 14px;background:#1d2333;border:1px solid var(--border);border-radius:8px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="select-all" ${allChecked ? 'checked' : ''} onclick="toggleSelectAll(event)" style="cursor:pointer">
+        전체 선택 (${issues.length}건)
+      </label>
+      <span style="color:var(--muted);font-size:13px">선택: <strong id="selected-count">${SELECTED.size}</strong>건</span>
+      <button class="refresh-btn" onclick="bulkApproveSelected()" id="btn-bulk-selected"
+              ${SELECTED.size === 0 ? 'disabled' : ''}
+              style="background:#3a6a3a;border-color:#5aa05a;color:#cfe9cf">
+        ⚡ 선택 일괄 승인 (${SELECTED.size})
+      </button>
+      <button class="refresh-btn" onclick="clearSelection()" ${SELECTED.size === 0 ? 'disabled' : ''}>해제</button>
+    </div>`;
+
+  el.innerHTML = summary + selBar + `<div class="issue-list">${issues.map(issue => {
     const region = extractSection(issue.body, '관련 지역') || '';
     const type   = extractSection(issue.body, '자료 종류') || '';
     const date   = extractSection(issue.body, '자료 연도') || '';
@@ -581,9 +604,12 @@ function renderIssueList(issues) {
       : '<span class="badge badge-closed">완료</span>';
     const rev = reviewLabelOf(issue);
     const reviewBadge = `<span class="badge ${rev.cls}">${rev.text}</span>`;
-    return `<div class="issue-card" onclick="openModal(${issue.number})">
-      <div class="issue-num">#${issue.number}</div>
-      <div class="issue-body">
+    const isSel = SELECTED.has(issue.number);
+    return `<div class="issue-card" data-num="${issue.number}">
+      <input type="checkbox" class="issue-check" data-sel="${issue.number}" ${isSel ? 'checked' : ''}
+             style="margin:18px 8px 0 4px;cursor:pointer;transform:scale(1.2)" onclick="event.stopPropagation()">
+      <div class="issue-num" onclick="openModal(${issue.number})" style="cursor:pointer">#${issue.number}</div>
+      <div class="issue-body" onclick="openModal(${issue.number})" style="cursor:pointer">
         <div class="issue-title">${escapeHtml(title)}</div>
         <div class="issue-meta">
           ${stateBadge}
@@ -597,6 +623,98 @@ function renderIssueList(issues) {
       </div>
     </div>`;
   }).join('')}</div>`;
+
+  // 체크박스 핸들러
+  el.querySelectorAll('input.issue-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const num = +e.target.dataset.sel;
+      if (e.target.checked) SELECTED.add(num); else SELECTED.delete(num);
+      updateSelectionBar();
+    });
+  });
+}
+
+function toggleSelectAll(e) {
+  e.stopPropagation();
+  const filtered = currentFilteredIssues();
+  const all = filtered.every(i => SELECTED.has(i.number));
+  if (all) {
+    filtered.forEach(i => SELECTED.delete(i.number));
+  } else {
+    filtered.forEach(i => SELECTED.add(i.number));
+  }
+  renderIssues();
+}
+
+function clearSelection() {
+  SELECTED.clear();
+  renderIssues();
+}
+
+function updateSelectionBar() {
+  document.getElementById('selected-count').textContent = SELECTED.size;
+  const btn = document.getElementById('btn-bulk-selected');
+  btn.textContent = `⚡ 선택 일괄 승인 (${SELECTED.size})`;
+  btn.disabled = SELECTED.size === 0;
+}
+
+function currentFilteredIssues() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let filtered = q
+    ? allIssues.filter(i => i.title.toLowerCase().includes(q) || (i.body || '').toLowerCase().includes(q))
+    : allIssues;
+  if (reviewFilter !== 'all') {
+    filtered = filtered.filter(i => reviewLabelOf(i).key === reviewFilter);
+  }
+  return filtered;
+}
+
+async function bulkApproveSelected() {
+  if (SELECTED.size === 0) { alert('선택된 항목이 없습니다.'); return; }
+  const targets = allIssues.filter(i => SELECTED.has(i.number));
+  if (!confirm(`선택한 ${targets.length}건을 자동 경로로 일괄 승인합니다.\n\n각 항목은 자동 폴더 + 자동 파일명 + 자동 변환 md로 처리됩니다.\n계속할까요?`)) return;
+
+  const box = document.getElementById('bulk-progress');
+  box.style.display = 'block';
+  box.style.color = 'var(--muted)';
+  box.textContent = `진행 중: 0/${targets.length}`;
+
+  let ok = 0, fail = 0;
+  const failed = [];
+  for (let i = 0; i < targets.length; i++) {
+    const issue = targets[i];
+    box.textContent = `진행 중: ${i+1}/${targets.length} (✅${ok} / ❌${fail}) — #${issue.number} ${issue.title.slice(0, 50)}`;
+    try {
+      const res = await fetch(`${WORKER_URL}/admin/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+        body: JSON.stringify({ issue_number: issue.number }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        ok++;
+        allIssues = allIssues.filter(x => x.number !== issue.number);
+        SELECTED.delete(issue.number);
+      } else {
+        fail++;
+        failed.push({ number: issue.number, title: issue.title, error: data.error });
+      }
+    } catch (e) {
+      fail++;
+      failed.push({ number: issue.number, title: issue.title, error: String(e) });
+    }
+    if (i < targets.length - 1) await new Promise(r => setTimeout(r, 800));
+  }
+
+  renderIssues();
+  box.style.color = fail === 0 ? '#4ade80' : '#fbbf24';
+  let msg = `완료: ✅${ok} / ❌${fail} (총 ${targets.length})`;
+  if (fail) {
+    msg += '\n실패 항목:\n' + failed.slice(0, 5).map(f => `  #${f.number} — ${f.error}`).join('\n');
+    if (failed.length > 5) msg += `\n  ... (${failed.length - 5}건 더)`;
+  }
+  box.textContent = msg;
+  box.style.whiteSpace = 'pre-wrap';
 }
 
 // ─── 모달 ─────────────────────────────────────────────────
