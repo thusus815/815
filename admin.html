@@ -340,7 +340,14 @@
           <input type="text" id="field-filename" placeholder="자료제목.md">
         </div>
       </div>
-      <span class="md-preview-toggle" onclick="toggleMdEditor()">▶ md 내용 직접 편집</span>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <span class="md-preview-toggle" onclick="toggleMdEditor()" style="flex:1">▶ md 내용 직접 편집</span>
+        <button class="btn-outline" onclick="normalizeKoreanInMd()" id="btn-normalize-spacing"
+                title="한글 변환 본문에 띄어쓰기를 자동으로 적용합니다 (Llama 3.3 70B)"
+                style="font-size:12px;padding:6px 12px;background:#3a2e6e;border-color:#5a4cb8;color:#d8c8ff">
+          🪄 한글 띄어쓰기 정리
+        </button>
+      </div>
       <textarea class="md-editor" id="md-editor"></textarea>
 
       <div class="action-btns">
@@ -763,6 +770,48 @@ async function doApprove() {
     document.getElementById('action-result').className = 'action-result err';
     document.getElementById('action-result').textContent = `❌ 오류: ${data.error}`;
     document.getElementById('btn-approve').disabled = false;
+  }
+}
+
+// ─── 한글 띄어쓰기 정리 (Workers AI Llama) ────────────────
+async function normalizeKoreanInMd() {
+  const editor = document.getElementById('md-editor');
+  const btn    = document.getElementById('btn-normalize-spacing');
+  let md = editor.value;
+  if (!md) { alert('먼저 미리보기 md를 생성해주세요.'); return; }
+
+  // ## 본문 — 한글 변환 (네이버 OCR) 코드블록 추출
+  const re = /(## 본문 — 한글 변환[^\n]*\n+)```\n?([\s\S]*?)\n?```/m;
+  const m = md.match(re);
+  if (!m) { alert('한글 변환 본문 섹션을 찾지 못했습니다 (## 본문 — 한글 변환 ...).'); return; }
+  const koreanRaw = m[2];
+
+  btn.disabled = true;
+  btn.textContent = '🪄 정리 중... (Llama 호출, 15~40초)';
+
+  try {
+    const res = await fetch(`${WORKER_URL}/admin/normalize-spacing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+      body: JSON.stringify({ text: koreanRaw }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.normalized) {
+      alert(`정리 실패: ${data.error || '알 수 없는 오류'}`);
+      return;
+    }
+    // 헤딩을 "(띄어쓰기 정리)"로 바꾸고 코드블록 교체
+    const newSection = `## 본문 — 한글 변환 (띄어쓰기 정리, Llama 3.3 70B)\n\n\`\`\`\n${data.normalized}\n\`\`\``;
+    md = md.replace(re, newSection);
+    editor.value = md;
+    // md-editor가 닫혀있으면 열어서 사용자가 결과 확인 가능
+    if (!mdEditorOpen) toggleMdEditor();
+    alert('✅ 띄어쓰기 정리 완료. md-editor에서 결과를 확인하고 승인하세요.');
+  } catch (e) {
+    alert(`정리 중 오류: ${e.message || e}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🪄 한글 띄어쓰기 정리';
   }
 }
 

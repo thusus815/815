@@ -198,6 +198,54 @@ const BASE_SYSTEM_PROMPT = `당신은 한국 근현대사(1900~1945) 친일·항
 3. 인물·사건명은 정확히 표기합니다.
 4. 친일/항일 분류가 컨텍스트에 명시된 경우 그대로 따릅니다.`;
 
+// ─── 한글 띄어쓰기·문장 정리 (Workers AI) ─────────────────────────────
+const SPACING_PROMPT = `당신은 1920~1930년대 한국 신문 OCR 텍스트를 현대 한국어 띄어쓰기 규범에 맞게 정리하는 도구입니다.
+
+규칙:
+1. 원문의 단어·표현·한자 병기는 절대 바꾸지 마세요. 띄어쓰기만 정상화하고, 어휘는 보존합니다.
+2. 한자 병기 "(漢字)" 또는 "(漢字(한글))" 형식은 그대로 유지합니다.
+3. 인명·지명·학교명은 한 단위로 붙여 씁니다 (예: "부여농업보습학교", "강성구").
+4. 조사·어미는 앞 단어에 붙입니다 ("학교에", "갔다").
+5. 결과 텍스트만 출력. 설명·머리말·코드블록 마커 없이.
+
+원본:
+\`\`\`
+{INPUT}
+\`\`\`
+
+띄어쓰기 정리본:`;
+
+async function normalizeKoreanSpacing(text: string, env: Env): Promise<string> {
+  if (!text || text.length < 20) return text;
+  // 너무 긴 텍스트는 잘라서 보냄 (Llama 컨텍스트 보호)
+  const MAX = 6000;
+  const chunk = text.length > MAX ? text.slice(0, MAX) : text;
+  try {
+    const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+      messages: [
+        { role: 'system', content: '당신은 한국어 띄어쓰기 정리 도구입니다. 결과 텍스트만 출력합니다.' },
+        { role: 'user', content: SPACING_PROMPT.replace('{INPUT}', chunk) },
+      ],
+      max_tokens: 4096,
+    } as any);
+    let out = ((response as any).response || '').trim();
+    // 모델이 코드블록 마커를 붙였을 경우 제거
+    out = out.replace(/^```[\w]*\n?/, '').replace(/\n?```\s*$/, '').trim();
+    return out || text;
+  } catch (e) {
+    console.error('normalizeKoreanSpacing error:', e);
+    return text;
+  }
+}
+
+async function handleNormalizeSpacing(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  const { text } = await req.json() as { text?: string };
+  if (!text) return Response.json({ error: 'text required' }, { status: 400 });
+  const normalized = await normalizeKoreanSpacing(text, env);
+  return Response.json({ ok: true, normalized });
+}
+
 async function handleChat(req: Request, env: Env) {
   const { question } = await req.json() as { question?: string };
   if (!question) return Response.json({ error: "question required" }, { status: 400 });
@@ -886,6 +934,8 @@ export default {
         res = await handleAdminOcr(req, env);
       } else if (url.pathname === "/admin/analyze" && req.method === "POST") {
         res = await handleAdminAnalyze(req, env);
+      } else if (url.pathname === "/admin/normalize-spacing" && req.method === "POST") {
+        res = await handleNormalizeSpacing(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {
