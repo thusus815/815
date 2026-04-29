@@ -8,8 +8,20 @@
 export type RouteKind = '인물' | '학교' | '신문' | '판결문' | '사건' | '단체' | '지역';
 export interface ConvertResult { md: string; folder: string; filename: string; kind: RouteKind; }
 
+// submit.html이 사용하는 표준 8개 섹션 헤딩만 종료자로 인정.
+// note에 들어온 사용자 마크다운에 비표준 ## 헤딩(예: "## 본문 — 한자 원문")이 있어도
+// 다음 표준 섹션을 만나기 전까지 본문이 잘리지 않도록 한다.
+const STD_HEADINGS = [
+  '자료 제목', '자료 종류', '자료 연도', '관련 지역',
+  '관련 인물·사건', '자료 출처·소장처', '설명·메모', '첨부 파일 목록',
+];
+
 export function parseSection(body: string, heading: string): string {
-  const re = new RegExp(`## ${heading}\\s*\\n([\\s\\S]*?)(?=\\n## |\\n---|-$)`, 'm');
+  const enders = STD_HEADINGS
+    .filter(h => h !== heading)
+    .map(h => `\\n## ${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+    .join('|');
+  const re = new RegExp(`## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=${enders}|\\n---\\n|$)`, 'm');
   const m = body.match(re);
   return m ? m[1].trim() : '';
 }

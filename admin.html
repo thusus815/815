@@ -289,8 +289,10 @@
   <div class="main">
     <div class="filter-row">
       <input type="text" id="search-input" placeholder="제목·지역 검색..." oninput="renderIssues()" style="flex:1">
+      <button class="refresh-btn" onclick="bulkApproveFiltered()" id="btn-bulk-approve" title="검색·라벨 필터 결과를 자동 경로로 일괄 승인">⚡ 필터 일괄 승인</button>
       <button class="refresh-btn" onclick="loadIssues()">↻ 새로고침</button>
     </div>
+    <div id="bulk-progress" style="display:none;margin-bottom:12px;padding:10px 14px;background:#1d2333;border:1px solid var(--border);border-radius:8px;font-size:13px"></div>
     <div id="issue-list-area">
       <div class="loading-msg">불러오는 중...</div>
     </div>
@@ -759,6 +761,65 @@ async function doApprove() {
     document.getElementById('action-result').textContent = `❌ 오류: ${data.error}`;
     document.getElementById('btn-approve').disabled = false;
   }
+}
+
+// ─── 일괄 승인 (현재 화면 필터 결과) ──────────────────────
+async function bulkApproveFiltered() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let filtered = q
+    ? allIssues.filter(i => i.title.toLowerCase().includes(q) || (i.body || '').toLowerCase().includes(q))
+    : allIssues;
+  if (reviewFilter !== 'all') {
+    filtered = filtered.filter(i => reviewLabelOf(i).key === reviewFilter);
+  }
+  if (filtered.length === 0) { alert('일괄 승인할 항목이 없습니다.'); return; }
+
+  const yes = confirm(`현재 필터 결과 ${filtered.length}건을 자동 경로로 일괄 승인합니다.\n\n` +
+                      `각 항목은 자동 폴더 + 자동 파일명 + 자동 변환 md로 처리됩니다.\n` +
+                      `(개별 검수가 필요하면 카드 클릭 → 모달에서 처리하세요.)\n\n계속할까요?`);
+  if (!yes) return;
+
+  const box = document.getElementById('bulk-progress');
+  box.style.display = 'block';
+  box.style.color = 'var(--muted)';
+  box.textContent = `진행 중: 0/${filtered.length}`;
+
+  let ok = 0, fail = 0;
+  const failed = [];
+  for (let i = 0; i < filtered.length; i++) {
+    const issue = filtered[i];
+    box.textContent = `진행 중: ${i+1}/${filtered.length} (✅${ok} / ❌${fail}) — #${issue.number} ${issue.title.slice(0, 50)}`;
+    try {
+      const res = await fetch(`${WORKER_URL}/admin/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+        body: JSON.stringify({ issue_number: issue.number }),  // override 없음 = worker 자동 경로/파일명/md
+      });
+      const data = await res.json();
+      if (data.ok) {
+        ok++;
+        allIssues = allIssues.filter(x => x.number !== issue.number);
+      } else {
+        fail++;
+        failed.push({ number: issue.number, title: issue.title, error: data.error });
+      }
+    } catch (e) {
+      fail++;
+      failed.push({ number: issue.number, title: issue.title, error: String(e) });
+    }
+    // GitHub API rate limit 보호 (초당 1건 페이스)
+    if (i < filtered.length - 1) await new Promise(r => setTimeout(r, 800));
+  }
+
+  renderIssues();
+  box.style.color = fail === 0 ? '#4ade80' : '#fbbf24';
+  let msg = `완료: ✅${ok} / ❌${fail} (총 ${filtered.length})`;
+  if (fail) {
+    msg += '\n실패 항목:\n' + failed.slice(0, 5).map(f => `  #${f.number} — ${f.error}`).join('\n');
+    if (failed.length > 5) msg += `\n  ... (${failed.length - 5}건 더)`;
+  }
+  box.textContent = msg;
+  box.style.whiteSpace = 'pre-wrap';
 }
 
 async function doReject() {
