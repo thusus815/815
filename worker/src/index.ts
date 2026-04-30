@@ -691,6 +691,65 @@ async function handleAdminGetCurrentMd(req: Request, env: Env) {
   return Response.json({ ok: true, md, file_path });
 }
 
+// 자동 분류 .md를 새 buildMdFromIssue 로직으로 재생성하여 GitHub에 덮어쓰기
+async function handleAdminRegenerate(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const { issue_number } = await req.json() as { issue_number?: number };
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  const raw = await env.REVIEW_STATE.get(`approved:${issue_number}`);
+  if (!raw) return Response.json({ error: '승인 기록 없음' }, { status: 404 });
+  const { file_path } = JSON.parse(raw) as { file_path: string };
+
+  const ghHeaders = {
+    Authorization: `token ${env.GITHUB_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'my-31-admin-regen',
+  };
+
+  // 1. issue 본문 새로 fetch
+  const issueRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    { headers: ghHeaders },
+  );
+  if (!issueRes.ok) return Response.json({ error: `이슈 조회 실패: ${issueRes.status}` }, { status: 502 });
+  const issue = await issueRes.json() as any;
+
+  // 2. 새 buildMdFromIssue 로직으로 변환
+  const { md } = buildMdFromIssue(issue);
+
+  // 3. 기존 파일 SHA
+  const getRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    { headers: ghHeaders },
+  );
+  if (!getRes.ok) return Response.json({ error: `파일 조회 실패: ${getRes.status}` }, { status: 502 });
+  const fileData = await getRes.json() as { sha: string };
+
+  // 4. PUT (덮어쓰기)
+  const content = btoa(unescape(encodeURIComponent(md)));
+  const putRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
+    {
+      method: 'PUT', headers: ghHeaders,
+      body: JSON.stringify({
+        message: `chore: 자동 분류 재생성 #${issue_number}`,
+        content, sha: fileData.sha,
+      }),
+    },
+  );
+  if (!putRes.ok) {
+    const err = await putRes.text();
+    return Response.json({ error: `파일 갱신 실패: ${putRes.status}`, detail: err.slice(0, 300) }, { status: 502 });
+  }
+  const putData = await putRes.json() as any;
+
+  return Response.json({ ok: true, file_path, commit_url: putData.commit?.html_url, md_preview: md.slice(0, 500) });
+}
+
 // 토큰 진단 — 등록된 GITHUB_TOKEN의 owner/권한을 알려줌
 async function handleAdminWhoami(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
@@ -1220,6 +1279,8 @@ export default {
         res = await handleAdminGetReviewState(req, env);
       } else if (url.pathname === "/admin/whoami" && req.method === "GET") {
         res = await handleAdminWhoami(req, env);
+      } else if (url.pathname === "/admin/regenerate" && req.method === "POST") {
+        res = await handleAdminRegenerate(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {

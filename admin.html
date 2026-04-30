@@ -357,6 +357,7 @@
         <button class="btn-outline" onclick="toggleRejectBox()">⚠️ 반려</button>
         <button class="btn-approve" id="btn-update" onclick="doUpdate('edit')" style="display:none;background:#3a6a8a">✏️ 수정 반영</button>
         <button class="btn-outline" id="btn-supplement" onclick="doUpdate('supplement')" style="display:none;background:#2a5a3a;border-color:#5aa080;color:#b0ffd0">➕ 보충 반영</button>
+        <button class="btn-outline" id="btn-regen" onclick="doRegenerate()" style="display:none;background:#3a3a6a;border-color:#6a6aaa;color:#c8c8ff" title="현재 worker buildMdFromIssue 로직으로 .md를 새로 생성하여 덮어쓰기">🔁 자동 분류 재생성</button>
         <button class="btn-outline" id="btn-recall" onclick="doRecall()" style="display:none;background:#5a2a2a;border-color:#a05050;color:#ffb0b0">🔄 회수 (사후 반려)</button>
       </div>
 
@@ -819,6 +820,7 @@ function openModal(num) {
   document.getElementById('btn-recall').style.display = isClosed ? 'inline-flex' : 'none';
   document.getElementById('btn-update').style.display = isClosed ? 'inline-flex' : 'none';
   document.getElementById('btn-supplement').style.display = isClosed ? 'inline-flex' : 'none';
+  document.getElementById('btn-regen').style.display = isClosed ? 'inline-flex' : 'none';
   document.getElementById('btn-approve').style.display = isClosed ? 'none' : 'inline-flex';
   if (isClosed) loadCurrentMdFromGitHub(issue.number);
 
@@ -980,6 +982,45 @@ async function doUpdate(kind) {
     } else {
       document.getElementById('action-result').className = 'action-result err';
       document.getElementById('action-result').textContent = `❌ ${action} 실패: ${data.error}${data.detail ? ' / ' + data.detail : ''}`;
+      btn.disabled = false;
+    }
+  } catch (e) {
+    document.getElementById('action-result').className = 'action-result err';
+    document.getElementById('action-result').textContent = `❌ 네트워크 오류: ${e.message}`;
+    btn.disabled = false;
+  }
+}
+
+// ─── 자동 분류 재생성 (worker 새 로직으로 .md 덮어쓰기) ──────
+async function doRegenerate() {
+  if (!currentIssue) return;
+  if (!confirm(`#${currentIssue.number}: 현재 worker 로직으로 .md를 새로 생성해 덮어씁니다.\n\n· 인물·학교·사건 자동 추출 결과가 최신 알고리즘으로 갱신됩니다.\n· 한자 병기 없는 false positive(잘못 추출된 학교 등)가 제거됩니다.\n\n진행할까요?`)) return;
+
+  const btn = document.getElementById('btn-regen');
+  btn.disabled = true;
+  document.getElementById('action-result').textContent = '재생성 중...';
+  document.getElementById('action-result').className = 'action-result';
+
+  try {
+    const res = await fetch(`${WORKER_URL}/admin/regenerate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+      body: JSON.stringify({ issue_number: currentIssue.number }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('action-result').className = 'action-result ok';
+      const commitUrl = safeUrl(data.commit_url);
+      document.getElementById('action-result').innerHTML =
+        `🔁 재생성 완료! <code>${escapeHtml(data.file_path)}</code>` +
+        (commitUrl ? `<br><a href="${escapeHtml(commitUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">커밋 보기 →</a>` : '');
+      // md-editor에 새 결과 미리 표시
+      if (data.md_preview && mdEditorOpen) {
+        document.getElementById('md-editor').value = data.md_preview + '\n... (전체 새로고침해 확인)';
+      }
+    } else {
+      document.getElementById('action-result').className = 'action-result err';
+      document.getElementById('action-result').textContent = `❌ 재생성 실패: ${data.error}${data.detail ? ' / ' + data.detail : ''}`;
       btn.disabled = false;
     }
   } catch (e) {
