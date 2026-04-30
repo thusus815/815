@@ -92,6 +92,7 @@
     display: flex; gap: 16px; align-items: flex-start;
   }
   .issue-card:hover { border-color: var(--gold-dim); }
+  .issue-card.regen-done { border-left: 3px solid #5a8aff; background: linear-gradient(90deg, rgba(74,112,144,0.08), var(--card) 60%); }
   .issue-num { color: var(--muted); font-size: 13px; min-width: 36px; padding-top: 2px; }
   .issue-body { flex: 1; }
   .issue-title { font-size: 15px; margin-bottom: 6px; }
@@ -431,6 +432,34 @@ let mdEditorOpen = false;
 let rejectBoxOpen = false;
 let reviewFilter = 'all'; // all | ok | edit | reroute | reject | none
 
+// 재분류 적용된 이슈 추적 (localStorage 영속) — 행 배지 + 일괄 재분류 시 중복 스킵
+const REGEN_STORAGE_KEY = 'admin_regenerated_v1';
+function loadRegenerated() {
+  try {
+    const raw = localStorage.getItem(REGEN_STORAGE_KEY);
+    if (!raw) return new Map();
+    const obj = JSON.parse(raw);
+    return new Map(Object.entries(obj).map(([k, v]) => [+k, +v]));
+  } catch { return new Map(); }
+}
+function saveRegenerated() {
+  const obj = {};
+  for (const [k, v] of REGENERATED.entries()) obj[k] = v;
+  localStorage.setItem(REGEN_STORAGE_KEY, JSON.stringify(obj));
+}
+function markRegenerated(num, ts) {
+  REGENERATED.set(num, ts || Date.now());
+  saveRegenerated();
+}
+function clearRegeneratedAll() {
+  if (!confirm('재분류 완료 표시를 모두 초기화할까요? (실제 KV/.md는 변경되지 않음)')) return;
+  REGENERATED.clear();
+  saveRegenerated();
+  renderIssues();
+}
+const REGENERATED = loadRegenerated();  // Map<issueNum, generated_at>
+
+
 const REVIEW_LABEL_MAP = {
   '검토완료':   { key: 'ok',      text: '✅ 검토완료',   cls: 'badge-review-ok' },
   '수정필요':   { key: 'edit',    text: '✏️ 수정필요',   cls: 'badge-review-edit' },
@@ -648,7 +677,17 @@ function renderIssueList(issues) {
               style="background:#3a6a3a;border-color:#5aa05a;color:#cfe9cf">
         ⚡ 선택 일괄 승인 (${SELECTED.size})
       </button>
+      <button class="refresh-btn" onclick="bulkRegenerateSelected()" id="btn-bulk-regen"
+              ${SELECTED.size === 0 ? 'disabled' : ''}
+              style="background:#3a3a6a;border-color:#6a6aaa;color:#c8c8ff"
+              title="선택한 이슈에 대해 AI 자동 분류 재생성을 일괄 적용 (개별 diff 확인 없이 바로 적용)">
+        🔁 선택 일괄 AI 재분류 (${SELECTED.size})
+      </button>
       <button class="refresh-btn" onclick="clearSelection()" ${SELECTED.size === 0 ? 'disabled' : ''}>해제</button>
+      <span style="margin-left:auto;color:var(--muted);font-size:12px">
+        재분류 완료: <strong style="color:#90c8ff">${REGENERATED.size}</strong>건
+        ${REGENERATED.size > 0 ? `<a href="#" onclick="event.preventDefault();clearRegeneratedAll()" style="margin-left:8px;color:var(--muted);font-size:11px;text-decoration:underline">🧹 표시 초기화</a>` : ''}
+      </span>
     </div>`;
 
   el.innerHTML = summary + selBar + `<div class="issue-list">${issues.map(issue => {
@@ -664,7 +703,11 @@ function renderIssueList(issues) {
     const reviewBadge = `<span class="badge ${rev.cls}">${rev.text}</span>`;
     const isSel = SELECTED.has(issue.number);
     const regenLabel = issue.state === 'open' ? 'AI 재분류 (미리보기)' : 'AI 재생성 (커밋 덮어쓰기)';
-    return `<div class="issue-card" data-num="${issue.number}">
+    const regenTs = REGENERATED.get(issue.number);
+    const regenBadge = regenTs
+      ? `<span class="badge" style="background:#1f3a5a;color:#90c8ff;border:1px solid #4a7090" title="${new Date(regenTs).toLocaleString()} 재분류 적용">🔁 재분류됨</span>` : '';
+    const cardBgClass = regenTs ? ' regen-done' : '';
+    return `<div class="issue-card${cardBgClass}" data-num="${issue.number}">
       <input type="checkbox" class="issue-check" data-sel="${issue.number}" ${isSel ? 'checked' : ''}
              style="margin:18px 8px 0 4px;cursor:pointer;transform:scale(1.2)" onclick="event.stopPropagation()">
       <div class="issue-num" onclick="openModal(${issue.number})" style="cursor:pointer">#${issue.number}</div>
@@ -673,6 +716,7 @@ function renderIssueList(issues) {
         <div class="issue-meta">
           ${stateBadge}
           ${reviewBadge}
+          ${regenBadge}
           ${region ? `<span>📍 ${escapeHtml(region)}</span>` : ''}
           ${type ? `<span>📄 ${escapeHtml(type)}</span>` : ''}
           ${date ? `<span>📅 ${escapeHtml(date)}</span>` : ''}
@@ -682,8 +726,8 @@ function renderIssueList(issues) {
       </div>
       <button class="row-regen-btn" data-row-regen="${issue.number}" data-state="${issue.state}"
               title="${regenLabel} — 현재 worker 알고리즘으로 자동 분류 재생성, prev/next 비교 모달 표시"
-              style="align-self:center;margin-right:8px;padding:6px 10px;background:#3a3a6a;border:1px solid #6a6aaa;color:#c8c8ff;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap"
-              onclick="event.stopPropagation(); rowRegenerate(${issue.number}, '${issue.state}')">🔁 ${escapeHtml(regenLabel)}</button>
+              style="align-self:center;margin-right:8px;padding:6px 10px;background:${regenTs ? '#2a5a3a' : '#3a3a6a'};border:1px solid ${regenTs ? '#5aa080' : '#6a6aaa'};color:${regenTs ? '#b0ffd0' : '#c8c8ff'};border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap"
+              onclick="event.stopPropagation(); rowRegenerate(${issue.number}, '${issue.state}')">🔁 ${escapeHtml(regenTs ? '재분류됨 (다시?)' : regenLabel)}</button>
     </div>`;
   }).join('')}</div>`;
 
@@ -752,6 +796,11 @@ function updateSelectionBar() {
   const btn = document.getElementById('btn-bulk-selected');
   btn.textContent = `⚡ 선택 일괄 승인 (${SELECTED.size})`;
   btn.disabled = SELECTED.size === 0;
+  const rb = document.getElementById('btn-bulk-regen');
+  if (rb) {
+    rb.textContent = `🔁 선택 일괄 AI 재분류 (${SELECTED.size})`;
+    rb.disabled = SELECTED.size === 0;
+  }
 }
 
 function currentFilteredIssues() {
@@ -1254,12 +1303,88 @@ async function diffApply() {
         currentIssue.preview.kind = next.kind;
       }
     }
+    markRegenerated(issueNumber, Date.now());
     closeDiffModal();
+    renderIssues();  // 행 배지/색상 즉시 반영
   } catch (e) {
     confirmBtn.disabled = false;
     confirmBtn.textContent = '✅ 적용';
     alert('적용 실패: ' + e.message);
   }
+}
+
+// 선택된 이슈 일괄 AI 재분류 (개별 diff 모달 없이 바로 적용)
+// 같은 종류의 자료를 수십 건 한 번에 처리할 때 사용.
+async function bulkRegenerateSelected() {
+  if (!adminSecret) { alert('먼저 관리자 비밀번호를 입력하세요'); return; }
+  const targets = Array.from(SELECTED).map(n => allIssues.find(i => i.number === n)).filter(Boolean);
+  if (!targets.length) { alert('선택된 이슈가 없습니다'); return; }
+
+  // 이미 재분류된 항목은 건너뛰는 옵션 (중복 클릭 실수 방지)
+  const pending = targets.filter(i => !REGENERATED.has(i.number));
+  const skipCount = targets.length - pending.length;
+  let runTargets = pending;
+  if (skipCount > 0) {
+    const reuse = confirm(
+      `선택 ${targets.length}건 중 ${skipCount}건은 이미 재분류 완료 표시가 있습니다.\n\n` +
+      `[확인] 미처리 ${pending.length}건만 재분류\n` +
+      `[취소] 모든 ${targets.length}건 강제 재분류 (이미 적용된 것도 다시)`
+    );
+    if (!reuse) runTargets = targets;
+  }
+  if (!runTargets.length) { alert('처리할 이슈가 없습니다 (모두 이미 완료)'); return; }
+
+  const openIssues = runTargets.filter(i => i.state === 'open');
+  const closedIssues = runTargets.filter(i => i.state === 'closed');
+  const warn =
+    `다음 작업을 일괄 적용합니다 (개별 비교 없음):\n\n` +
+    `· 미승인 ${openIssues.length}건 → KV 미리보기 갱신 (검토자에게 새 결과 표시)\n` +
+    `· 승인됨 ${closedIssues.length}건 → GitHub 커밋 덮어쓰기\n\n` +
+    `진행할까요?`;
+  if (!confirm(warn)) return;
+
+  const btn = document.getElementById('btn-bulk-regen');
+  if (btn) { btn.disabled = true; }
+
+  let ok = 0, fail = 0;
+  const failures = [];
+  for (let idx = 0; idx < runTargets.length; idx++) {
+    const issue = runTargets[idx];
+    const isClosed = issue.state === 'closed';
+    const endpoint = isClosed ? '/admin/regenerate' : '/admin/regenerate-preview';
+    if (btn) btn.textContent = `🔁 진행 중 ${idx + 1}/${runTargets.length} (#${issue.number})`;
+    try {
+      const res = await fetch(`${WORKER_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+        body: JSON.stringify({ issue_number: issue.number, dry_run: false }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        ok++;
+        markRegenerated(issue.number, Date.now());
+        // 매 5건마다 UI 갱신해서 진행 상황 시각화
+        if ((idx + 1) % 5 === 0) renderIssues();
+      } else {
+        fail++;
+        failures.push(`#${issue.number}: ${data.error || 'unknown'}`);
+      }
+    } catch (e) {
+      fail++;
+      failures.push(`#${issue.number}: ${e.message}`);
+    }
+    // GitHub API rate-limit 보호 (closed 이슈는 commit이라 더 보수적)
+    if (isClosed && idx < runTargets.length - 1) await new Promise(r => setTimeout(r, 350));
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = `🔁 선택 일괄 AI 재분류 (${SELECTED.size})`;
+  }
+  renderIssues();
+  const summary = `완료: ✅${ok} / ❌${fail} (총 ${runTargets.length})` +
+    (failures.length ? `\n\n실패 항목 (최대 10개):\n${failures.slice(0, 10).join('\n')}` : '');
+  alert(summary);
 }
 
 // ─── 사후 회수 (closed 이슈 + 검토자 반려추천 후) ────────────
