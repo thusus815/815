@@ -224,43 +224,95 @@ export function buildMdFromIssue(issue: any): ConvertResult {
     '여러분', '학교', '직원', '교원', '당국', '관청', '동민', '일동',
     '소년', '소녀', '부인', '농민', '노동자', '사람', '시민', '검사', '판사',
     '간부', '회원', '대표', '단원', '인원', '전부', '일부', '명단',
+    '면장', '지국', '경찰서', '읍내', '연구가', '기자', '학자', '작가',
+    '인쇄', '출판', '발행', '편집', '주서', '복윤', '원문',
   ]);
+
+  // 띄어쓰기 없는 OCR 본문에서 잘못 잡히는 false positive 차단:
+  // 토큰에 한국어 조사/어미가 포함되거나 시작이 직함이면 정리·거부.
+  const PARTICLE_RE = /(?:으로|로서|에서|하면|하며|면서|에는|되었|있는|이라|이라는|이라고|하는|되는|하던|되던|하기|되기|되면|있어|있었|있다|이며|또한|그러|이러|되어|있으|라하|라며|라면|마다|만흔|는바|만은|쇄물|업보)/;
+  const TITLE_PREFIX_RE = /^(?:선생|청년|공인|국원|면장|학생|교사|교원|위원|동지|소년|소녀|여러분|일동|단원|회원|대표|간부|부인|농민|노동자|시민|검사|판사|관계자|인사|지국장|기자|관청|당국|동민|중에|중의|즉시|매번|모두|이번|금번|특히|당시|그때|이때)/;
+  const NON_PERSON_SUFFIX_RE = /(?:군|면|리|읍|동|시|도|국|회|단|서|소|부|과|청|점|원|장|가|학교|학원|위원회|협의회|조합|보안)$/;
+  const PERSON_RE = /^[가-힣]{2,4}$/;
+  const SCHOOL_RE = /^[가-힣]{2,3}(?:공립|사립|시립)?(?:(?:농업|상업|공업|보습|보통|국민|고등|중|소)+(?:학교|학원|보교|상교|농교|고보)|보교|상교|농교|고보|학원|중학교|소학교|고등학교)$/;
+  const EVENT_RE  = /^[가-힣]{2,4}(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문|항쟁|운동|사건)$/;
+  const SUSPICIOUS_PREFIX_RE = /^(?:업보|편으|로농|하는|되는|이라|하면|하며|되면|되었|이었|있는|쇄물|마다|만흔|만은|는바|중정|등의|등을|등이|등은|등도|업보)/;
+
+  function stripTitlePrefix(s: string): string {
+    let prev = '';
+    while (prev !== s) { prev = s; s = s.replace(TITLE_PREFIX_RE, ''); }
+    return s;
+  }
+
+  function isCleanPerson(k: string): string | null {
+    if (PARTICLE_RE.test(k)) return null;
+    if (NON_PERSON_SUFFIX_RE.test(k)) return null;  // 부여군/지국/경찰서 등
+    const stripped = stripTitlePrefix(k);
+    if (!stripped || !PERSON_RE.test(stripped)) return null;
+    if (NON_PERSON_WORDS.has(stripped)) return null;
+    if (NON_PERSON_SUFFIX_RE.test(stripped)) return null;
+    return stripped;
+  }
+  function isCleanSchool(k: string): string | null {
+    if (PARTICLE_RE.test(k)) return null;
+    if (SUSPICIOUS_PREFIX_RE.test(k)) return null;
+    const stripped = stripTitlePrefix(k);
+    if (!stripped || stripped.length < 4 || stripped.length > 9) return null;
+    if (SUSPICIOUS_PREFIX_RE.test(stripped)) return null;
+    if (!SCHOOL_RE.test(stripped)) return null;
+    return stripped;
+  }
+  function isCleanEvent(k: string): string | null {
+    if (PARTICLE_RE.test(k)) return null;
+    if (SUSPICIOUS_PREFIX_RE.test(k)) return null;
+    const stripped = stripTitlePrefix(k);
+    if (!stripped || stripped.length < 4 || stripped.length > 9) return null;
+    if (!EVENT_RE.test(stripped)) return null;
+    return stripped;
+  }
   if (persons && persons !== '(미기재)') {
     const tokens = persons.split(/[,，、·\n]+/).map(s => s.trim()).filter(Boolean);
     for (const t of tokens) {
       // 한자/괄호 제거하여 한글 표기만 추출
       const k = t.replace(/\([^)]*\)/g, '').replace(/[一-龥]+/g, '').trim();
       if (!k) continue;
-      if (/(학교|고보|고등학교|보습)/.test(k)) schoolTokens.push(k);
-      else if (/(운동|항쟁|시위|맹휴|동맹휴학|사건|격문)/.test(k)) eventTokens.push(k);
-      else if (/(회|단|협의|동맹|위원|조합|총독부|보안|경찰)/.test(k)) orgTokens.push(k);
-      else if (/^[가-힣]{2,5}$/.test(k) && !NON_PERSON_WORDS.has(k)) personTokens.push(k);
-      else if (!NON_PERSON_WORDS.has(k)) orgTokens.push(k);
+      // 학교/사건/단체는 패턴 검증 후 등록 (false positive 차단)
+      if (/(학교|고보|고등학교|보습)/.test(k)) {
+        const cs = isCleanSchool(k);
+        if (cs && !schoolTokens.includes(cs)) schoolTokens.push(cs);
+        continue;
+      }
+      if (/(운동|항쟁|시위|맹휴|동맹휴학|사건|격문)/.test(k)) {
+        const ce = isCleanEvent(k);
+        if (ce && !eventTokens.includes(ce)) eventTokens.push(ce);
+        continue;
+      }
+      if (/(회|단|협의|동맹|위원|조합|총독부|보안|경찰)/.test(k)) {
+        if (!orgTokens.includes(k)) orgTokens.push(k);
+        continue;
+      }
+      const cp = isCleanPerson(k);
+      if (cp && !personTokens.includes(cp)) personTokens.push(cp);
     }
   }
 
   // 본문에 등장하는 인물 한자명을 한글로 추출 (예: "박창신(朴昌信)" → "박창신")
   const inlinePersons = new Set<string>();
-  for (const m of (note || '').matchAll(/([가-힣]{2,5})\s*\([一-龥\s]{1,8}\)/g)) {
-    if (m[1] !== koName && !NON_PERSON_WORDS.has(m[1])) inlinePersons.add(m[1]);
+  for (const m of (note || '').matchAll(/([가-힣]{2,7})\s*\([一-龥\s]{1,8}\)/g)) {
+    const cp = isCleanPerson(m[1]);
+    if (cp && cp !== koName) inlinePersons.add(cp);
   }
   for (const p of inlinePersons) if (!personTokens.includes(p)) personTokens.push(p);
 
   // 학교/사건은 한자 병기가 붙은 단어만 추출 — 띄어쓰기 안 된 OCR 한글
-  // 본문에서 어미가 결합되어 잘못 추출되는 false positive를 차단.
-  // 패턴: "부여농업보습학교(扶餘農業補習學校(부여농업보습학교))" 처럼
-  //   한글토큰 직후 ( 한자 가 따라오는 것만 인정.
-  // schoolKeywords로 끝나는 한글 토큰만 학교로 분류.
-  const SCHOOL_KW = /(?:학교|고등학교|고보|농교|보교|상교|중학|소학|보습)$/;
-  const EVENT_KW  = /(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문|항쟁|운동|사건)$/;
-  for (const m of (note || '').matchAll(/([가-힣]{2,10})\s*\([一-龥\s]{2,15}\)/g)) {
+  // 본문에서 어미가 결합되어 잘못 추출되는 false positive는 isCleanSchool/Event로 차단.
+  for (const m of (note || '').matchAll(/([가-힣]{2,12})\s*\([一-龥\s]{2,15}\)/g)) {
     const k = m[1];
     if (NON_PERSON_WORDS.has(k)) continue;
-    if (SCHOOL_KW.test(k)) {
-      if (!schoolTokens.includes(k)) schoolTokens.push(k);
-    } else if (EVENT_KW.test(k)) {
-      if (!eventTokens.includes(k)) eventTokens.push(k);
-    }
+    const cs = isCleanSchool(k);
+    if (cs) { if (!schoolTokens.includes(cs)) schoolTokens.push(cs); continue; }
+    const ce = isCleanEvent(k);
+    if (ce) { if (!eventTokens.includes(ce)) eventTokens.push(ce); continue; }
     // 인물은 inlinePersons에서 따로 처리됨
   }
   // detectSchool 결과(한자 무관, 폼의 '관련 인물' 필드 기반)도 보존하되
