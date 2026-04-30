@@ -691,6 +691,43 @@ async function handleAdminGetCurrentMd(req: Request, env: Env) {
   return Response.json({ ok: true, md, file_path });
 }
 
+// 토큰 진단 — 등록된 GITHUB_TOKEN의 owner/권한을 알려줌
+async function handleAdminWhoami(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+  if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
+
+  const headers = {
+    Authorization: `token ${env.GITHUB_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'my-31-admin-whoami',
+  };
+
+  // 1. /user — 토큰 owner
+  const userRes = await fetch('https://api.github.com/user', { headers });
+  const userBody = await userRes.text();
+  let user: any = null;
+  try { user = JSON.parse(userBody); } catch {}
+
+  // 2. /repos/thusus815/815 권한 — repo access 확인
+  const repoRes = await fetch('https://api.github.com/repos/thusus815/815', { headers });
+  const repoBody = await repoRes.text();
+  let repo: any = null;
+  try { repo = JSON.parse(repoBody); } catch {}
+
+  return Response.json({
+    ok: true,
+    user_status: userRes.status,
+    user_login: user?.login || null,
+    user_email: user?.email || null,
+    user_message: user?.message || null,
+    repo_status: repoRes.status,
+    repo_message: repo?.message || null,
+    repo_permissions: repo?.permissions || null,
+    token_prefix: env.GITHUB_TOKEN.slice(0, 12),
+    token_length: env.GITHUB_TOKEN.length,
+  });
+}
+
 // admin이 특정 이슈의 검토자 review state 조회 (검토자 제안 포함)
 async function handleAdminGetReviewState(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
@@ -1181,6 +1218,8 @@ export default {
         res = await handleAdminGetCurrentMd(req, env);
       } else if (url.pathname === "/admin/review-state" && req.method === "GET") {
         res = await handleAdminGetReviewState(req, env);
+      } else if (url.pathname === "/admin/whoami" && req.method === "GET") {
+        res = await handleAdminWhoami(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {

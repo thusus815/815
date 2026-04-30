@@ -293,6 +293,7 @@
     <div class="filter-row">
       <input type="text" id="search-input" placeholder="제목·지역 검색..." oninput="renderIssues()" style="flex:1">
       <button class="refresh-btn" onclick="bulkApproveFiltered()" id="btn-bulk-approve" title="검색·라벨 필터 결과를 자동 경로로 일괄 승인">⚡ 필터 일괄 승인</button>
+      <button class="refresh-btn" onclick="diagnoseToken()" title="등록된 GITHUB_TOKEN의 owner/권한 진단" style="background:#3a3a5a">🔍 토큰 진단</button>
       <button class="refresh-btn" onclick="loadIssues()">↻ 새로고침</button>
     </div>
     <div id="bulk-progress" style="display:none;margin-bottom:12px;padding:10px 14px;background:#1d2333;border:1px solid var(--border);border-radius:8px;font-size:13px"></div>
@@ -826,6 +827,46 @@ function openModal(num) {
 
   document.getElementById('modal-backdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// ─── 토큰 진단 ────────────────────────────────────────────
+async function diagnoseToken() {
+  try {
+    const res = await fetch(`${WORKER_URL}/admin/whoami`, {
+      headers: { 'X-Admin-Secret': adminSecret },
+    });
+    const d = await res.json();
+    if (!d.ok) { alert('진단 실패: ' + (d.error || res.status)); return; }
+    const perms = d.repo_permissions ? JSON.stringify(d.repo_permissions) : 'null';
+    const msg = `🔍 토큰 진단 결과
+─────────────────────────────────────
+[ /user 호출 ]
+  status      : ${d.user_status}
+  login       : ${d.user_login || '(없음)'}
+  email       : ${d.user_email || '(공개 안 됨)'}
+  message     : ${d.user_message || '(정상)'}
+
+[ thusus815/815 repo 권한 확인 ]
+  status      : ${d.repo_status}
+  message     : ${d.repo_message || '(정상)'}
+  permissions : ${perms}
+
+[ 토큰 정보 ]
+  prefix      : ${d.token_prefix}...
+  length      : ${d.token_length}자
+
+─────────────────────────────────────
+원인 판정:
+${d.user_status !== 200 ? '❌ 토큰 자체 무효 — wrangler secret put 다시 필요' :
+  d.user_login !== 'thusus815' ? `❌ 토큰 owner가 ${d.user_login} — thusus815 계정에서 PAT 발급해야 함` :
+  d.repo_status !== 200 ? `❌ thusus815/815 repo access 없음 — 토큰의 Repository access 설정 확인` :
+  !d.repo_permissions?.push ? `❌ Contents write 권한 없음 — Contents → Read and write 설정` :
+  '✅ 토큰 정상. 다른 원인 가능성.'}`;
+    alert(msg);
+    console.log('whoami:', d);
+  } catch (e) {
+    alert('진단 오류: ' + e.message);
+  }
 }
 
 // ─── 검토자 수정·보충 제안 노출 + 적용 ────────────────────
