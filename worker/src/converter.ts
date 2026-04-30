@@ -246,18 +246,31 @@ export function buildMdFromIssue(issue: any): ConvertResult {
   }
   for (const p of inlinePersons) if (!personTokens.includes(p)) personTokens.push(p);
 
-  // 본문에서 학교명 다중 추출 (한자 원문 안의 한글 변환 본문 모두 대상)
-  for (const m of (note || '').matchAll(/[가-힣]{2,8}(?:공립)?(?:보통|국민|소|중|고등|상업|농업(?:보습)?|보습)?(?:학교|고등학교|고보)/g)) {
-    if (m[0].length >= 4 && !schoolTokens.includes(m[0])) schoolTokens.push(m[0]);
+  // 학교/사건은 한자 병기가 붙은 단어만 추출 — 띄어쓰기 안 된 OCR 한글
+  // 본문에서 어미가 결합되어 잘못 추출되는 false positive를 차단.
+  // 패턴: "부여농업보습학교(扶餘農業補習學校(부여농업보습학교))" 처럼
+  //   한글토큰 직후 ( 한자 가 따라오는 것만 인정.
+  // schoolKeywords로 끝나는 한글 토큰만 학교로 분류.
+  const SCHOOL_KW = /(?:학교|고등학교|고보|농교|보교|상교|중학|소학|보습)$/;
+  const EVENT_KW  = /(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문|항쟁|운동|사건)$/;
+  for (const m of (note || '').matchAll(/([가-힣]{2,10})\s*\([一-龥\s]{2,15}\)/g)) {
+    const k = m[1];
+    if (NON_PERSON_WORDS.has(k)) continue;
+    if (SCHOOL_KW.test(k)) {
+      if (!schoolTokens.includes(k)) schoolTokens.push(k);
+    } else if (EVENT_KW.test(k)) {
+      if (!eventTokens.includes(k)) eventTokens.push(k);
+    }
+    // 인물은 inlinePersons에서 따로 처리됨
   }
-  // 학교 검출 결과 통합 — '충남 당진군 면천면 면천공립보통학교' 같은 긴 표기에서 마지막 학교명만 추출
+  // detectSchool 결과(한자 무관, 폼의 '관련 인물' 필드 기반)도 보존하되
+  // 한자 병기 없는 자동 추출은 차단. 폼 입력은 신뢰.
   if (school) {
-    const cleanSchool = (school.match(/[가-힣]{2,8}(?:공립|공립보통|공립농업|공립상업)?(?:보통|국민|소|중|고등|상업|농업(?:보습)?|보습)?(?:학교|고등학교|고보)/g) || []).pop() || school;
+    const cleanSchool = (school.match(/[가-힣]{2,10}(?:학교|고등학교|고보|농교|보교|상교|보습)/g) || []).pop() || school;
     if (cleanSchool && !schoolTokens.includes(cleanSchool)) schoolTokens.unshift(cleanSchool);
   }
-  // 본문에서 사건·운동 키워드 추출 (제목 + 본문 합산)
-  const eventBlob = `${title} ${note || ''}`;
-  for (const m of eventBlob.matchAll(/(?:[가-힣]{2,6}\s*)?(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문\s*사건|항쟁|운동|사건)/g)) {
+  // 제목에서 사건 키워드 (제목은 띄어쓰기 정상이므로 안전)
+  for (const m of title.matchAll(/(?:[가-힣]{2,6}\s+)?(?:동맹휴학|맹휴|만세항쟁|만세운동|시위|격문\s*사건|항쟁|운동|사건)/g)) {
     const e = m[0].trim();
     if (e.length >= 3 && e.length <= 14 && !eventTokens.includes(e)) eventTokens.push(e);
   }
