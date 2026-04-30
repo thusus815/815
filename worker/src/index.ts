@@ -506,16 +506,22 @@ async function handleAdminIssues(req: Request, env: Env) {
   const issues = await ghRes.json() as any[];
   if (!Array.isArray(issues)) return Response.json(issues);
 
-  // 각 이슈에 KV의 review state 부착 (GitHub 라벨 동기화가 실패해도
-  // 검토자 검토완료/수정필요 등 상태가 admin에 정상 노출되도록).
+  // 각 이슈에 KV review_state + frozen preview 부착.
+  // preview는 미존재 시 1회만 생성해 freeze. 매번 buildMdFromIssue
+  // 즉석 호출하지 않으므로 review/admin 화면 결과가 항상 일치.
   const enriched = await Promise.all(issues.map(async (iss) => {
     const rs = await getReviewState(env, iss.number);
+    const preview = iss.body ? await getOrCreatePreview(env, iss) : null;
     return {
       ...iss,
       review_state: rs.status,
       review_suggested_md: !!rs.suggested_md,
       review_last_reviewer: rs.last_reviewer || null,
       review_updated_at: rs.updated_at || null,
+      preview: preview ? {
+        md: preview.md, folder: preview.folder, filename: preview.filename,
+        kind: preview.kind, generated_at: preview.generated_at,
+      } : null,
     };
   }));
   return Response.json(enriched);
@@ -540,10 +546,11 @@ async function handleAdminApprove(req: Request, env: Env) {
   );
   const issue = await issueRes.json() as any;
 
-  const { md: autoMd, folder: autoFolder, filename: autoFilename } = buildMdFromIssue(issue);
-  const folder   = folder_override   || autoFolder;
-  const filename = filename_override || autoFilename;
-  const md       = md_override       || autoMd;
+  // KV에 freeze된 preview를 사용 (검토자가 본 결과와 동일). 없으면 1회 생성.
+  const cached = await getOrCreatePreview(env, issue);
+  const folder   = folder_override   || cached.folder;
+  const filename = filename_override || cached.filename;
+  const md       = md_override       || cached.md;
 
   const filePath = `${folder}/${filename}`;
   const content  = btoa(unescape(encodeURIComponent(md))); // base64 UTF-8
@@ -692,11 +699,12 @@ async function handleAdminGetCurrentMd(req: Request, env: Env) {
 }
 
 // 자동 분류 .md를 새 buildMdFromIssue 로직으로 재생성하여 GitHub에 덮어쓰기
+// dry_run=true: GitHub commit/KV 갱신 없이 prev/next 비교만 반환
 async function handleAdminRegenerate(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
   if (!env.GITHUB_TOKEN) return Response.json({ error: 'GITHUB_TOKEN 미설정' }, { status: 503 });
 
-  const { issue_number } = await req.json() as { issue_number?: number };
+  const { issue_number, dry_run } = await req.json() as { issue_number?: number; dry_run?: boolean };
   if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
 
   const raw = await env.REVIEW_STATE.get(`approved:${issue_number}`);
@@ -718,18 +726,38 @@ async function handleAdminRegenerate(req: Request, env: Env) {
   if (!issueRes.ok) return Response.json({ error: `이슈 조회 실패: ${issueRes.status}` }, { status: 502 });
   const issue = await issueRes.json() as any;
 
-  // 2. 새 buildMdFromIssue 로직으로 변환
-  const { md } = buildMdFromIssue(issue);
-
-  // 3. 기존 파일 SHA
+  // 2. 기존 GitHub .md 본문 fetch (prev — 비교용)
   const getRes = await fetch(
     `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
     { headers: ghHeaders },
   );
   if (!getRes.ok) return Response.json({ error: `파일 조회 실패: ${getRes.status}` }, { status: 502 });
-  const fileData = await getRes.json() as { sha: string };
+  const fileData = await getRes.json() as { sha: string; content: string };
+  const prevMd = (() => {
+    try {
+      const bin = atob((fileData.content || '').replace(/\n/g, ''));
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch { return ''; }
+  })();
 
-  // 4. PUT (덮어쓰기)
+  // 3. 새 buildMdFromIssue 로직으로 변환
+  const fresh = buildMdFromIssue(issue);
+  const { md } = fresh;
+
+  // dry_run: commit/KV 변경 없이 prev/next 비교만 반환
+  if (dry_run) {
+    return Response.json({
+      ok: true,
+      applied: false,
+      file_path,
+      prev: { md: prevMd, file_path },
+      next: { md, folder: fresh.folder, filename: fresh.filename, kind: fresh.kind },
+    });
+  }
+
+  // 4. KV freeze 갱신 + PUT (덮어쓰기)
+  await putCachedPreview(env, issue_number, fresh);
   const content = btoa(unescape(encodeURIComponent(md)));
   const putRes = await fetch(
     `https://api.github.com/repos/thusus815/815/contents/${encodeURIComponent(file_path)}`,
@@ -747,7 +775,79 @@ async function handleAdminRegenerate(req: Request, env: Env) {
   }
   const putData = await putRes.json() as any;
 
-  return Response.json({ ok: true, file_path, commit_url: putData.commit?.html_url, md_preview: md.slice(0, 500) });
+  return Response.json({
+    ok: true,
+    applied: true,
+    file_path,
+    commit_url: putData.commit?.html_url,
+    prev: { md: prevMd, file_path },
+    next: { md, folder: fresh.folder, filename: fresh.filename, kind: fresh.kind },
+  });
+}
+
+// 미승인(검토 대기) 이슈에 대해 KV freeze된 미리보기를 새 로직으로 재생성
+// dry_run=true 면 KV 갱신 없이 prev/next 비교만 반환
+async function handleAdminRegeneratePreview(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+
+  const { issue_number, dry_run } = await req.json() as { issue_number?: number; dry_run?: boolean };
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  const prev = await getCachedPreview(env, issue_number);
+
+  // 공개 GitHub API로 이슈 본문 fetch (토큰 없이도 가능 — 공개 이슈 가정)
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'my-31-admin-regen-preview',
+  };
+  if (env.GITHUB_TOKEN) headers.Authorization = `token ${env.GITHUB_TOKEN}`;
+
+  const ghRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    { headers },
+  );
+  if (!ghRes.ok) return Response.json({ error: `이슈 조회 실패: ${ghRes.status}` }, { status: 502 });
+  const issue = await ghRes.json() as any;
+
+  const fresh = buildMdFromIssue(issue);
+
+  let saved: CachedPreview;
+  if (dry_run) {
+    saved = { ...fresh, generated_at: Date.now() };
+  } else {
+    saved = await putCachedPreview(env, issue_number, fresh);
+  }
+
+  return Response.json({
+    ok: true,
+    applied: !dry_run,
+    prev: prev ? {
+      md: prev.md, folder: prev.folder, filename: prev.filename,
+      kind: prev.kind, generated_at: prev.generated_at,
+    } : null,
+    next: {
+      md: saved.md, folder: saved.folder, filename: saved.filename,
+      kind: saved.kind, generated_at: saved.generated_at,
+    },
+  });
+}
+
+// dry_run으로 본 결과를 KV preview에 freeze (검토자에게 보여줄 새 미리보기로 적용)
+async function handleAdminApplyPreview(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+
+  const { issue_number, md, folder, filename, kind } = await req.json() as {
+    issue_number?: number; md?: string; folder?: string; filename?: string; kind?: string;
+  };
+  if (!issue_number || !md || !folder || !filename || !kind) {
+    return Response.json({ error: 'issue_number, md, folder, filename, kind required' }, { status: 400 });
+  }
+  const cached = await putCachedPreview(env, issue_number, { md, folder, filename, kind });
+  return Response.json({
+    ok: true,
+    md: cached.md, folder: cached.folder, filename: cached.filename,
+    kind: cached.kind, generated_at: cached.generated_at,
+  });
 }
 
 // 토큰 진단 — 등록된 GITHUB_TOKEN의 owner/권한을 알려줌
@@ -1049,6 +1149,39 @@ interface ReviewState {
   updated_at?: number;
 }
 
+// ─── Frozen preview cache (재생성 버튼으로만 갱신) ─────────────
+// 매번 buildMdFromIssue를 호출하면 알고리즘 변경 시 review/admin이
+// 보는 결과가 흔들리고, 검토자가 본 미리보기와 admin이 commit하는
+// 결과가 달라질 위험이 있다. preview를 KV에 freeze하여 명시적
+// 재생성 시에만 갱신.
+interface CachedPreview {
+  md: string;
+  folder: string;
+  filename: string;
+  kind: string;
+  generated_at: number;
+}
+
+async function getCachedPreview(env: Env, num: number): Promise<CachedPreview | null> {
+  const raw = await env.REVIEW_STATE.get(`preview:${num}`);
+  if (!raw) return null;
+  try { return JSON.parse(raw) as CachedPreview; } catch { return null; }
+}
+
+async function putCachedPreview(env: Env, num: number, p: { md: string; folder: string; filename: string; kind: string }) {
+  const cached: CachedPreview = { ...p, generated_at: Date.now() };
+  await env.REVIEW_STATE.put(`preview:${num}`, JSON.stringify(cached));
+  return cached;
+}
+
+// preview 미존재 시 1회 생성하여 freeze (이후 명시적 재생성 전까지 유지)
+async function getOrCreatePreview(env: Env, issue: any): Promise<CachedPreview> {
+  const existing = await getCachedPreview(env, issue.number);
+  if (existing) return existing;
+  const fresh = buildMdFromIssue(issue);
+  return putCachedPreview(env, issue.number, fresh);
+}
+
 async function getReviewState(env: Env, num: number): Promise<ReviewState> {
   const raw = await env.REVIEW_STATE.get(`review:${num}`);
   if (!raw) return { status: 'pending', comments: [] };
@@ -1078,9 +1211,11 @@ async function handleReviewIssues(req: Request, env: Env) {
     if (arr.length < PER_PAGE) break;
   }
 
-  // 각 이슈에 자동 분류 미리보기 + 검토 상태 부착
+  // 각 이슈의 preview는 KV에 freeze된 결과만 사용 (없으면 1회 생성·저장).
+  // 매번 buildMdFromIssue를 호출하지 않으므로, 알고리즘 변경 후에도
+  // 검토자가 본 미리보기와 admin이 보는 결과가 일치한다.
   const enriched = await Promise.all(issues.map(async (iss) => {
-    const preview = iss.body ? buildMdFromIssue(iss) : null;
+    const preview = iss.body ? await getOrCreatePreview(env, iss) : null;
     const st = await getReviewState(env, iss.number);
     return {
       number: iss.number,
@@ -1095,6 +1230,7 @@ async function handleReviewIssues(req: Request, env: Env) {
         folder: preview.folder,
         filename: preview.filename,
         md: preview.md,
+        generated_at: preview.generated_at,
       } : null,
       review: st,
     };
@@ -1112,13 +1248,20 @@ async function handleReviewIssues(req: Request, env: Env) {
 }
 
 // 검토자가 단건 이슈에 대해 새 buildMdFromIssue 로직으로 자동 분류
-// 미리보기를 즉석 재생성 (GitHub commit 없음, KV 변경 없음).
+// 미리보기를 명시적 재생성. 이전 freeze된 preview를 prev로 반환하여
+// 검토자가 변경 전/후를 비교 가능. 새 결과로 KV preview를 덮어쓴다.
+//
+// dry_run=true: KV는 건드리지 않고 새 결과만 prev/next 형태로 미리보여줌.
+//               (검토자가 비교만 보고 적용을 보류할 수 있게)
 async function handleReviewRegeneratePreview(req: Request, env: Env) {
   const sess = await authReviewer(req, env);
   if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
 
-  const { issue_number } = await req.json() as { issue_number?: number };
+  const { issue_number, dry_run } = await req.json() as { issue_number?: number; dry_run?: boolean };
   if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  // 이전 freeze된 preview (없을 수도 있음)
+  const prev = await getCachedPreview(env, issue_number);
 
   // 공개 GitHub API로 이슈 본문 fetch (검토자는 GH 토큰 없음)
   const ghRes = await fetch(
@@ -1128,13 +1271,53 @@ async function handleReviewRegeneratePreview(req: Request, env: Env) {
   if (!ghRes.ok) return Response.json({ error: `이슈 조회 실패: ${ghRes.status}` }, { status: 502 });
   const issue = await ghRes.json() as any;
 
-  const result = buildMdFromIssue(issue);
+  // 새 결과 생성
+  const fresh = buildMdFromIssue(issue);
+
+  // dry_run이면 KV 갱신 없이 비교만 반환
+  let saved: CachedPreview;
+  if (dry_run) {
+    saved = { ...fresh, generated_at: Date.now() };
+  } else {
+    saved = await putCachedPreview(env, issue_number, fresh);
+  }
+
   return Response.json({
     ok: true,
-    md: result.md,
-    folder: result.folder,
-    filename: result.filename,
-    kind: result.kind,
+    applied: !dry_run,
+    prev: prev ? {
+      md: prev.md, folder: prev.folder, filename: prev.filename,
+      kind: prev.kind, generated_at: prev.generated_at,
+    } : null,
+    next: {
+      md: saved.md, folder: saved.folder, filename: saved.filename,
+      kind: saved.kind, generated_at: saved.generated_at,
+    },
+    // 하위호환: 기존 클라이언트가 md/folder/filename/kind를 직접 읽음
+    md: saved.md,
+    folder: saved.folder,
+    filename: saved.filename,
+    kind: saved.kind,
+    generated_at: saved.generated_at,
+  });
+}
+
+// 검토자가 dry_run으로 미리 본 결과를 KV에 freeze (적용)
+async function handleReviewApplyPreview(req: Request, env: Env) {
+  const sess = await authReviewer(req, env);
+  if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
+
+  const { issue_number, md, folder, filename, kind } = await req.json() as {
+    issue_number?: number; md?: string; folder?: string; filename?: string; kind?: string;
+  };
+  if (!issue_number || !md || !folder || !filename || !kind) {
+    return Response.json({ error: 'issue_number, md, folder, filename, kind required' }, { status: 400 });
+  }
+  const cached = await putCachedPreview(env, issue_number, { md, folder, filename, kind });
+  return Response.json({
+    ok: true,
+    md: cached.md, folder: cached.folder, filename: cached.filename,
+    kind: cached.kind, generated_at: cached.generated_at,
   });
 }
 
@@ -1308,6 +1491,10 @@ export default {
         res = await handleAdminWhoami(req, env);
       } else if (url.pathname === "/admin/regenerate" && req.method === "POST") {
         res = await handleAdminRegenerate(req, env);
+      } else if (url.pathname === "/admin/regenerate-preview" && req.method === "POST") {
+        res = await handleAdminRegeneratePreview(req, env);
+      } else if (url.pathname === "/admin/apply-preview" && req.method === "POST") {
+        res = await handleAdminApplyPreview(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {
@@ -1318,8 +1505,6 @@ export default {
         res = await handleReviewFlag(req, env);
       } else if (url.pathname === "/review/suggest-edit" && req.method === "POST") {
         res = await handleReviewSuggestEdit(req, env);
-      } else if (url.pathname === "/review/regenerate-preview" && req.method === "POST") {
-        res = await handleReviewRegeneratePreview(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))

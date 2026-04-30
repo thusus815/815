@@ -376,6 +376,51 @@
   <img id="fullscreen-img" src="" alt="">
 </div>
 
+<!-- AI 재생성 prev/next 비교 모달 -->
+<div class="modal-backdrop" id="diff-modal" onclick="if(event.target===this)closeDiffModal()">
+  <div style="background:#1a1a1f;border:1px solid #444;border-radius:8px;width:96vw;max-width:1600px;max-height:92vh;display:flex;flex-direction:column;margin:1.5vh auto;box-shadow:0 8px 32px rgba(0,0,0,0.6)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #333">
+      <h3 id="diff-title" style="margin:0;color:#e0e0e0;font-size:14px">AI 재생성 비교</h3>
+      <button onclick="closeDiffModal()" style="background:transparent;border:none;color:#aaa;font-size:22px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:8px 20px;border-bottom:1px solid #333;color:#aaa;font-size:12px;display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <span id="diff-stats"></span>
+      <span style="color:#666">|</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#1f3a1f;vertical-align:middle;margin-right:4px"></span>추가</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#3a1f1f;vertical-align:middle;margin-right:4px"></span>삭제</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#222;vertical-align:middle;margin-right:4px"></span>동일</span>
+      <span style="margin-left:auto;color:#888">왼쪽 = 이전 / 오른쪽 = 새 결과</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#333;flex:1;overflow:hidden;min-height:0">
+      <div style="background:#15151a;overflow:auto;min-height:0">
+        <div style="padding:8px 12px;border-bottom:1px solid #333;color:#aaa;font-size:12px;font-weight:bold;background:#1a1a1f;position:sticky;top:0;z-index:1">이전 (prev)</div>
+        <div id="diff-prev" class="diff-pane"></div>
+      </div>
+      <div style="background:#15151a;overflow:auto;min-height:0">
+        <div style="padding:8px 12px;border-bottom:1px solid #333;color:#aaa;font-size:12px;font-weight:bold;background:#1a1a1f;position:sticky;top:0;z-index:1">새 결과 (next)</div>
+        <div id="diff-next" class="diff-pane"></div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid #333;display:flex;justify-content:flex-end;gap:8px">
+      <button onclick="closeDiffModal()" style="padding:8px 16px;background:#333;border:1px solid #555;color:#ccc;border-radius:4px;cursor:pointer">취소 (적용 안 함)</button>
+      <button id="diff-confirm" onclick="diffApply()" style="padding:8px 16px;background:#2a5a3a;border:1px solid #5aa080;color:#b0ffd0;border-radius:4px;cursor:pointer;font-weight:bold">✅ 적용</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.diff-pane { font-family: 'Menlo','Consolas',monospace; font-size: 12px; line-height: 1.55; }
+.diff-pane .dl { display:flex; min-height:1.55em; white-space:pre; }
+.diff-pane .dl .dn { display:inline-block; min-width:42px; padding:0 6px; color:#666; text-align:right; user-select:none; border-right:1px solid #2a2a2a; flex-shrink:0; }
+.diff-pane .dl .dt { padding:0 8px; flex:1; overflow-wrap:anywhere; white-space:pre-wrap; word-break:break-all; color:#d0d0d0; }
+.diff-pane .dl.same { background:#1a1a1f; }
+.diff-pane .dl.add  { background:#1f3a1f; }
+.diff-pane .dl.add  .dt { color:#b0ffb0; }
+.diff-pane .dl.del  { background:#3a1f1f; }
+.diff-pane .dl.del  .dt { color:#ffb0b0; }
+.diff-pane .dl.pad  { background:#0e0e12; opacity:0.5; }
+</style>
+
 <script>
 const WORKER_URL = 'https://815-chat.sungandpartners.workers.dev';
 let adminSecret = '';
@@ -820,7 +865,9 @@ function openModal(num) {
   document.getElementById('btn-recall').style.display = isClosed ? 'inline-flex' : 'none';
   document.getElementById('btn-update').style.display = isClosed ? 'inline-flex' : 'none';
   document.getElementById('btn-supplement').style.display = isClosed ? 'inline-flex' : 'none';
-  document.getElementById('btn-regen').style.display = isClosed ? 'inline-flex' : 'none';
+  // AI 재생성: 열린 이슈는 KV preview만, 닫힌 이슈는 GitHub commit까지 — 둘 다 노출
+  document.getElementById('btn-regen').style.display = 'inline-flex';
+  document.getElementById('btn-regen').textContent = isClosed ? '🔁 AI 재생성 (커밋 덮어쓰기)' : '🔁 AI 재분류 (미리보기 갱신)';
   document.getElementById('btn-approve').style.display = isClosed ? 'none' : 'inline-flex';
   if (isClosed) loadCurrentMdFromGitHub(issue.number);
 
@@ -991,42 +1038,189 @@ async function doUpdate(kind) {
   }
 }
 
-// ─── 자동 분류 재생성 (worker 새 로직으로 .md 덮어쓰기) ──────
+// ─── 자동 분류 재생성: dry_run으로 새 결과를 받아 prev/next 비교 모달 ─
 async function doRegenerate() {
   if (!currentIssue) return;
-  if (!confirm(`#${currentIssue.number}: 현재 worker 로직으로 .md를 새로 생성해 덮어씁니다.\n\n· 인물·학교·사건 자동 추출 결과가 최신 알고리즘으로 갱신됩니다.\n· 한자 병기 없는 false positive(잘못 추출된 학교 등)가 제거됩니다.\n\n진행할까요?`)) return;
+  const isClosed = currentTab === 'closed';
+  const endpoint = isClosed ? '/admin/regenerate' : '/admin/regenerate-preview';
 
   const btn = document.getElementById('btn-regen');
   btn.disabled = true;
-  document.getElementById('action-result').textContent = '재생성 중...';
+  document.getElementById('action-result').textContent = 'AI 재생성 중 (비교 준비)...';
   document.getElementById('action-result').className = 'action-result';
 
   try {
-    const res = await fetch(`${WORKER_URL}/admin/regenerate`, {
+    const res = await fetch(`${WORKER_URL}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
-      body: JSON.stringify({ issue_number: currentIssue.number }),
+      body: JSON.stringify({ issue_number: currentIssue.number, dry_run: true }),
     });
     const data = await res.json();
-    if (data.ok) {
-      document.getElementById('action-result').className = 'action-result ok';
-      const commitUrl = safeUrl(data.commit_url);
-      document.getElementById('action-result').innerHTML =
-        `🔁 재생성 완료! <code>${escapeHtml(data.file_path)}</code>` +
-        (commitUrl ? `<br><a href="${escapeHtml(commitUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">커밋 보기 →</a>` : '');
-      // md-editor에 새 결과 미리 표시
-      if (data.md_preview && mdEditorOpen) {
-        document.getElementById('md-editor').value = data.md_preview + '\n... (전체 새로고침해 확인)';
-      }
-    } else {
+    if (!data.ok) {
       document.getElementById('action-result').className = 'action-result err';
       document.getElementById('action-result').textContent = `❌ 재생성 실패: ${data.error}${data.detail ? ' / ' + data.detail : ''}`;
       btn.disabled = false;
+      return;
     }
+    document.getElementById('action-result').textContent = '';
+    openDiffModal({
+      issueNumber: currentIssue.number,
+      isClosed,
+      prev: data.prev,
+      next: data.next,
+    });
   } catch (e) {
     document.getElementById('action-result').className = 'action-result err';
     document.getElementById('action-result').textContent = `❌ 네트워크 오류: ${e.message}`;
+  } finally {
     btn.disabled = false;
+  }
+}
+
+// ─── prev vs next 비교 모달 (AI 재생성 결과 검토용) ────────────
+let DIFF_CTX = null;  // { issueNumber, isClosed, prev, next }
+
+function openDiffModal({ issueNumber, isClosed, prev, next }) {
+  DIFF_CTX = { issueNumber, isClosed, prev, next };
+  const prevMd = (prev && prev.md) || '';
+  const nextMd = (next && next.md) || '';
+  document.getElementById('diff-title').textContent =
+    `#${issueNumber} AI 재생성 비교 — ${isClosed ? '커밋 .md vs 새 결과' : 'KV 미리보기 vs 새 결과'}`;
+  document.getElementById('diff-prev').innerHTML = renderDiffSide(prevMd, nextMd, 'prev');
+  document.getElementById('diff-next').innerHTML = renderDiffSide(prevMd, nextMd, 'next');
+  const stats = computeDiffStats(prevMd, nextMd);
+  document.getElementById('diff-stats').textContent =
+    `+${stats.added}줄 추가 · −${stats.removed}줄 삭제 · ${stats.same}줄 동일`;
+  document.getElementById('diff-confirm').textContent =
+    isClosed ? '✅ 적용 (GitHub 커밋 + KV 갱신)' : '✅ 적용 (KV 미리보기 갱신 — 검토자에게 새 결과 표시)';
+  document.getElementById('diff-modal').classList.add('open');
+}
+
+function closeDiffModal() {
+  document.getElementById('diff-modal').classList.remove('open');
+  DIFF_CTX = null;
+}
+
+// LCS 기반 줄 단위 diff — 각 줄이 same / added / removed 중 하나로 분류
+function lineDiff(a, b) {
+  const A = a.split('\n');
+  const B = b.split('\n');
+  const m = A.length, n = B.length;
+  // LCS 표 (m, n이 클 수 있어 1차원 배열로 메모리 절약)
+  const dp = new Array((m + 1) * (n + 1)).fill(0);
+  const idx = (i, j) => i * (n + 1) + j;
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      if (A[i] === B[j]) dp[idx(i, j)] = dp[idx(i + 1, j + 1)] + 1;
+      else dp[idx(i, j)] = Math.max(dp[idx(i + 1, j)], dp[idx(i, j + 1)]);
+    }
+  }
+  const ops = [];  // {type:'same'|'add'|'del', a?, b?}
+  let i = 0, j = 0;
+  while (i < m && j < n) {
+    if (A[i] === B[j]) { ops.push({ type: 'same', a: A[i], b: B[j] }); i++; j++; }
+    else if (dp[idx(i + 1, j)] >= dp[idx(i, j + 1)]) { ops.push({ type: 'del', a: A[i] }); i++; }
+    else { ops.push({ type: 'add', b: B[j] }); j++; }
+  }
+  while (i < m) { ops.push({ type: 'del', a: A[i++] }); }
+  while (j < n) { ops.push({ type: 'add', b: B[j++] }); }
+  return ops;
+}
+
+function computeDiffStats(prevMd, nextMd) {
+  const ops = lineDiff(prevMd, nextMd);
+  let added = 0, removed = 0, same = 0;
+  for (const o of ops) {
+    if (o.type === 'add') added++;
+    else if (o.type === 'del') removed++;
+    else same++;
+  }
+  return { added, removed, same };
+}
+
+function renderDiffSide(prevMd, nextMd, side) {
+  const ops = lineDiff(prevMd, nextMd);
+  const lines = [];
+  let lnPrev = 0, lnNext = 0;
+  for (const o of ops) {
+    if (o.type === 'same') {
+      lnPrev++; lnNext++;
+      const text = side === 'prev' ? o.a : o.b;
+      const ln = side === 'prev' ? lnPrev : lnNext;
+      lines.push(`<div class="dl same"><span class="dn">${ln}</span><span class="dt">${escapeHtml(text)}</span></div>`);
+    } else if (o.type === 'del') {
+      lnPrev++;
+      if (side === 'prev') {
+        lines.push(`<div class="dl del"><span class="dn">${lnPrev}</span><span class="dt">${escapeHtml(o.a)}</span></div>`);
+      } else {
+        lines.push(`<div class="dl pad"><span class="dn"></span><span class="dt"></span></div>`);
+      }
+    } else { // add
+      lnNext++;
+      if (side === 'next') {
+        lines.push(`<div class="dl add"><span class="dn">${lnNext}</span><span class="dt">${escapeHtml(o.b)}</span></div>`);
+      } else {
+        lines.push(`<div class="dl pad"><span class="dn"></span><span class="dt"></span></div>`);
+      }
+    }
+  }
+  return lines.join('');
+}
+
+async function diffApply() {
+  if (!DIFF_CTX) return;
+  const { issueNumber, isClosed, next } = DIFF_CTX;
+  const confirmBtn = document.getElementById('diff-confirm');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = '적용 중...';
+  try {
+    if (isClosed) {
+      // 커밋된 .md 덮어쓰기
+      const res = await fetch(`${WORKER_URL}/admin/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+        body: JSON.stringify({ issue_number: issueNumber, dry_run: false }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      document.getElementById('action-result').className = 'action-result ok';
+      const commitUrl = safeUrl(data.commit_url);
+      document.getElementById('action-result').innerHTML =
+        `🔁 재생성 적용 완료! <code>${escapeHtml(data.file_path)}</code>` +
+        (commitUrl ? `<br><a href="${escapeHtml(commitUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">커밋 보기 →</a>` : '');
+      // md-editor 갱신
+      if (mdEditorOpen) document.getElementById('md-editor').value = next.md;
+    } else {
+      // KV preview만 갱신 — 검토자가 새 결과를 보게 됨
+      const res = await fetch(`${WORKER_URL}/admin/apply-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+        body: JSON.stringify({
+          issue_number: issueNumber,
+          md: next.md, folder: next.folder, filename: next.filename, kind: next.kind,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      document.getElementById('action-result').className = 'action-result ok';
+      document.getElementById('action-result').textContent =
+        '🔁 새 미리보기 적용 완료 — 검토자에게 새 분류가 표시됩니다 (커밋 안 됨).';
+      // md-editor 갱신
+      if (mdEditorOpen) document.getElementById('md-editor').value = next.md;
+      // 현재 issue.preview도 갱신
+      if (currentIssue) {
+        currentIssue.preview = currentIssue.preview || {};
+        currentIssue.preview.md = next.md;
+        currentIssue.preview.folder = next.folder;
+        currentIssue.preview.filename = next.filename;
+        currentIssue.preview.kind = next.kind;
+      }
+    }
+    closeDiffModal();
+  } catch (e) {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '✅ 적용';
+    alert('적용 실패: ' + e.message);
   }
 }
 
