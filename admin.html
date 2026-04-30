@@ -663,6 +663,7 @@ function renderIssueList(issues) {
     const rev = reviewLabelOf(issue);
     const reviewBadge = `<span class="badge ${rev.cls}">${rev.text}</span>`;
     const isSel = SELECTED.has(issue.number);
+    const regenLabel = issue.state === 'open' ? 'AI 재분류 (미리보기)' : 'AI 재생성 (커밋 덮어쓰기)';
     return `<div class="issue-card" data-num="${issue.number}">
       <input type="checkbox" class="issue-check" data-sel="${issue.number}" ${isSel ? 'checked' : ''}
              style="margin:18px 8px 0 4px;cursor:pointer;transform:scale(1.2)" onclick="event.stopPropagation()">
@@ -679,6 +680,10 @@ function renderIssueList(issues) {
           <span>${timeAgo(issue.created_at)}</span>
         </div>
       </div>
+      <button class="row-regen-btn" data-row-regen="${issue.number}" data-state="${issue.state}"
+              title="${regenLabel} — 현재 worker 알고리즘으로 자동 분류 재생성, prev/next 비교 모달 표시"
+              style="align-self:center;margin-right:8px;padding:6px 10px;background:#3a3a6a;border:1px solid #6a6aaa;color:#c8c8ff;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap"
+              onclick="event.stopPropagation(); rowRegenerate(${issue.number}, '${issue.state}')">🔁 ${escapeHtml(regenLabel)}</button>
     </div>`;
   }).join('')}</div>`;
 
@@ -690,6 +695,39 @@ function renderIssueList(issues) {
       updateSelectionBar();
     });
   });
+}
+
+// 이슈 목록 행에서 직접 AI 재생성 — 모달 안 열어도 동작
+async function rowRegenerate(num, state) {
+  const issue = (allIssues || []).find(i => i.number === num);
+  if (!issue) { alert('이슈를 찾을 수 없습니다'); return; }
+  if (!adminSecret) { alert('먼저 관리자 비밀번호를 입력하세요'); return; }
+  currentIssue = issue;
+  // 모달 열지 않은 상태에서도 currentTab 기반 분기 사용
+  const isClosed = state === 'closed';
+  const endpoint = isClosed ? '/admin/regenerate' : '/admin/regenerate-preview';
+  const btn = document.querySelector(`button[data-row-regen="${num}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '재생성 중...'; }
+  try {
+    const res = await fetch(`${WORKER_URL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+      body: JSON.stringify({ issue_number: num, dry_run: true }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      alert(`재생성 실패: ${data.error}${data.detail ? ' / ' + data.detail : ''}`);
+      return;
+    }
+    openDiffModal({ issueNumber: num, isClosed, prev: data.prev, next: data.next });
+  } catch (e) {
+    alert('네트워크 오류: ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔁 ' + (state === 'open' ? 'AI 재분류 (미리보기)' : 'AI 재생성 (커밋 덮어쓰기)');
+    }
+  }
 }
 
 function toggleSelectAll(e) {
