@@ -305,8 +305,13 @@ function renderTable() {
     detail.innerHTML = `<td colspan="7"><div class="detail-pad">
       <div class="grid">
         <div class="panel">
-          <h4>📄 자동 분류 미리보기 (.md)</h4>
-          <div class="body"><pre>${escapeHtml(iss.preview ? iss.preview.md : '(자동 분류 실패 — body 없음)')}</pre></div>
+          <h4 style="display:flex;justify-content:space-between;align-items:center">
+            <span>📄 자동 분류 미리보기 (.md)</span>
+            <button data-action="regen_preview" data-num="${iss.number}"
+                    style="font-size:11px;padding:4px 10px;background:#5a5aaa;color:#fff;border:none;border-radius:4px;cursor:pointer"
+                    title="현재 worker 알고리즘으로 자동 분류 .md를 다시 생성하여 이 미리보기 + 수정 제안 textarea에 표시 (GitHub commit 없음)">🔁 분류 재생성</button>
+          </h4>
+          <div class="body"><pre data-preview-num="${iss.number}">${escapeHtml(iss.preview ? iss.preview.md : '(자동 분류 실패 — body 없음)')}</pre></div>
         </div>
         <div class="panel">
           <h4>📥 원본 이슈 본문</h4>
@@ -377,6 +382,30 @@ function renderTable() {
       btn.classList.add('busy');
 
       try {
+        if (action === 'regen_preview') {
+          const r = await fetch(`${WORKER_URL}/review/regenerate-preview`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+            body: JSON.stringify({ issue_number: num }),
+          });
+          const d = await r.json();
+          if (!r.ok || !d.ok) { toast('실패: ' + (d.error || r.status)); return; }
+          // 미리보기 영역 + 수정 제안 textarea 동시 갱신
+          const pre = tb.querySelector(`pre[data-preview-num="${num}"]`);
+          if (pre) pre.textContent = d.md;
+          const ta = tb.querySelector(`textarea.md-suggest-input[data-num="${num}"]`);
+          if (ta) ta.value = d.md;
+          // DATA의 preview도 갱신 (다음 렌더 시 일관성)
+          const issObj = DATA.find(i => i.number === num);
+          if (issObj && issObj.preview) {
+            issObj.preview.md = d.md;
+            issObj.preview.folder = d.folder;
+            issObj.preview.filename = d.filename;
+            issObj.preview.kind = d.kind;
+          }
+          toast('🔁 자동 분류 재생성 완료 (저장은 안 됨, 미리보기만)');
+          return;
+        }
         if (action === 'suggest_edit') {
           // .md 수정·보충 제안 (kind: 'edit' | 'supplement')
           const kind = btn.dataset.kind;

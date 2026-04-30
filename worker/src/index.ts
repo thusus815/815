@@ -1111,6 +1111,33 @@ async function handleReviewIssues(req: Request, env: Env) {
   );
 }
 
+// 검토자가 단건 이슈에 대해 새 buildMdFromIssue 로직으로 자동 분류
+// 미리보기를 즉석 재생성 (GitHub commit 없음, KV 변경 없음).
+async function handleReviewRegeneratePreview(req: Request, env: Env) {
+  const sess = await authReviewer(req, env);
+  if (!sess) return Response.json({ error: '인증 필요' }, { status: 401 });
+
+  const { issue_number } = await req.json() as { issue_number?: number };
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  // 공개 GitHub API로 이슈 본문 fetch (검토자는 GH 토큰 없음)
+  const ghRes = await fetch(
+    `https://api.github.com/repos/thusus815/815/issues/${issue_number}`,
+    { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'my-31-review-regen' } },
+  );
+  if (!ghRes.ok) return Response.json({ error: `이슈 조회 실패: ${ghRes.status}` }, { status: 502 });
+  const issue = await ghRes.json() as any;
+
+  const result = buildMdFromIssue(issue);
+  return Response.json({
+    ok: true,
+    md: result.md,
+    folder: result.folder,
+    filename: result.filename,
+    kind: result.kind,
+  });
+}
+
 // 검토자가 web에서 .md 수정 제안 제출 (GitHub 직접 접근 없이)
 async function handleReviewSuggestEdit(req: Request, env: Env) {
   const sess = await authReviewer(req, env);
@@ -1291,6 +1318,8 @@ export default {
         res = await handleReviewFlag(req, env);
       } else if (url.pathname === "/review/suggest-edit" && req.method === "POST") {
         res = await handleReviewSuggestEdit(req, env);
+      } else if (url.pathname === "/review/regenerate-preview" && req.method === "POST") {
+        res = await handleReviewRegeneratePreview(req, env);
       } else if (url.pathname === "/personas" && req.method === "GET") {
         res = Response.json(
           Object.values(PERSONAS).map(p => ({ id: p.id, displayName: p.displayName, era: p.era, region: p.region }))
