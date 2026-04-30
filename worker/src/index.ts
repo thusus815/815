@@ -832,6 +832,64 @@ async function handleAdminRegeneratePreview(req: Request, env: Env) {
   });
 }
 
+// 검토자에게 재검토 요청 — KV review_state를 'pending'으로 리셋하여 검토자 큐에
+// 다시 뜨게 하고, GitHub label을 검토 라벨에서 제거. 선택적으로 issue comment 추가.
+// 단건/일괄 모두에서 호출 가능. 재분류 직후 호출하면 "관리자가 분류를 다시
+// 해서 검토자에게 내려보냈다"는 의미가 됨.
+async function handleAdminResendToReviewer(req: Request, env: Env) {
+  if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
+
+  const { issue_number, comment } = await req.json() as { issue_number?: number; comment?: string };
+  if (!issue_number) return Response.json({ error: 'issue_number required' }, { status: 400 });
+
+  // 1. KV review_state status = 'pending' 으로 리셋 (suggested_md 같은 검토자 입력은 보존)
+  const st = await getReviewState(env, issue_number);
+  const prevStatus = st.status;
+  st.status = 'pending';
+  st.last_reviewer = null;  // 재검토 트리거 — 누가 다시 봐도 됨
+  st.updated_at = new Date().toISOString();
+  st.comments = st.comments || [];
+  st.comments.push({
+    reviewer: '관리자(자동 재분류)',
+    text: comment || `자동 분류를 재생성하여 다시 검토 요청합니다. (이전 상태: ${prevStatus})`,
+    ts: Date.now(),
+  });
+  await putReviewState(env, issue_number, st);
+
+  // 2. GitHub 라벨에서 검토 라벨 제거 (검토자 큐에 fresh로 뜨도록)
+  if (env.GITHUB_TOKEN) {
+    const ghHeaders = {
+      Authorization: `token ${env.GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'my-31-admin-resend',
+    };
+    const labelsToRemove = ['검토완료', '수정필요', '분류재검토', '반려추천'];
+    for (const label of labelsToRemove) {
+      try {
+        await fetch(
+          `https://api.github.com/repos/thusus815/815/issues/${issue_number}/labels/${encodeURIComponent(label)}`,
+          { method: 'DELETE', headers: ghHeaders },
+        );
+      } catch {}
+    }
+    // 3. (선택) issue comment 추가
+    try {
+      await fetch(
+        `https://api.github.com/repos/thusus815/815/issues/${issue_number}/comments`,
+        {
+          method: 'POST', headers: ghHeaders,
+          body: JSON.stringify({
+            body: comment || '🔁 관리자가 자동 분류를 재생성했습니다. 다시 검토 부탁드립니다.',
+          }),
+        },
+      );
+    } catch {}
+  }
+
+  return Response.json({ ok: true, prev_status: prevStatus, new_status: 'pending' });
+}
+
 // dry_run으로 본 결과를 KV preview에 freeze (검토자에게 보여줄 새 미리보기로 적용)
 async function handleAdminApplyPreview(req: Request, env: Env) {
   if (!checkAdmin(req, env)) return Response.json({ error: '인증 실패' }, { status: 401 });
@@ -1495,6 +1553,8 @@ export default {
         res = await handleAdminRegeneratePreview(req, env);
       } else if (url.pathname === "/admin/apply-preview" && req.method === "POST") {
         res = await handleAdminApplyPreview(req, env);
+      } else if (url.pathname === "/admin/resend-to-reviewer" && req.method === "POST") {
+        res = await handleAdminResendToReviewer(req, env);
       } else if (url.pathname === "/review/login" && req.method === "POST") {
         res = await handleReviewLogin(req, env);
       } else if (url.pathname === "/review/issues" && req.method === "GET") {

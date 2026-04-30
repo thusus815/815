@@ -281,7 +281,7 @@
 <!-- 메인 앱 -->
 <div id="app">
   <header>
-    <h1>나의 3·1 — 관리자</h1>
+    <h1>나의 3·1 — 관리자 <span style="font-size:11px;color:#90c8ff;font-weight:normal" title="이 텍스트가 보이면 일괄 AI 재분류·재검토 요청 기능이 적용된 최신 버전">v2026.04.30 일괄재분류</span></h1>
     <span class="logout" onclick="doLogout()">로그아웃</span>
   </header>
 
@@ -1336,17 +1336,27 @@ async function bulkRegenerateSelected() {
 
   const openIssues = runTargets.filter(i => i.state === 'open');
   const closedIssues = runTargets.filter(i => i.state === 'closed');
-  const warn =
+  // 재검토 요청 옵션
+  const resend = confirm(
     `다음 작업을 일괄 적용합니다 (개별 비교 없음):\n\n` +
-    `· 미승인 ${openIssues.length}건 → KV 미리보기 갱신 (검토자에게 새 결과 표시)\n` +
+    `· 미승인 ${openIssues.length}건 → KV 미리보기 갱신\n` +
     `· 승인됨 ${closedIssues.length}건 → GitHub 커밋 덮어쓰기\n\n` +
-    `진행할까요?`;
-  if (!confirm(warn)) return;
+    `[확인] 재분류 + 검토자에게 재검토 요청 (검토 라벨 초기화 + 알림 코멘트)\n` +
+    `[취소] 작업 중단\n\n` +
+    `(재검토 요청 없이 KV만 갱신하려면 아래에서 다시 묻습니다)`
+  );
+  if (!resend) {
+    const onlyKv = confirm(
+      `재검토 요청 없이 KV/.md만 갱신할까요?\n` +
+      `(검토자 라벨/코멘트 변경 없음 — 검토자가 새로고침해야 새 결과 봄)`
+    );
+    if (!onlyKv) return;
+  }
 
   const btn = document.getElementById('btn-bulk-regen');
   if (btn) { btn.disabled = true; }
 
-  let ok = 0, fail = 0;
+  let ok = 0, fail = 0, notified = 0;
   const failures = [];
   for (let idx = 0; idx < runTargets.length; idx++) {
     const issue = runTargets[idx];
@@ -1354,35 +1364,57 @@ async function bulkRegenerateSelected() {
     const endpoint = isClosed ? '/admin/regenerate' : '/admin/regenerate-preview';
     if (btn) btn.textContent = `🔁 진행 중 ${idx + 1}/${runTargets.length} (#${issue.number})`;
     try {
+      // 1) 재분류
       const res = await fetch(`${WORKER_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
         body: JSON.stringify({ issue_number: issue.number, dry_run: false }),
       });
       const data = await res.json();
-      if (data.ok) {
-        ok++;
-        markRegenerated(issue.number, Date.now());
-        // 매 5건마다 UI 갱신해서 진행 상황 시각화
-        if ((idx + 1) % 5 === 0) renderIssues();
-      } else {
+      if (!data.ok) {
         fail++;
         failures.push(`#${issue.number}: ${data.error || 'unknown'}`);
+        continue;
       }
+      // 2) 검토자에게 재검토 요청 (resend=true 인 경우만)
+      if (resend) {
+        try {
+          const r2 = await fetch(`${WORKER_URL}/admin/resend-to-reviewer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+            body: JSON.stringify({
+              issue_number: issue.number,
+              comment: `🔁 관리자가 자동 분류를 재생성했습니다. 다시 검토 부탁드립니다.\n(일괄 처리: ${idx + 1}/${runTargets.length})`,
+            }),
+          });
+          const d2 = await r2.json();
+          if (d2.ok) notified++;
+        } catch {}
+      }
+      ok++;
+      markRegenerated(issue.number, Date.now());
+      if ((idx + 1) % 5 === 0) renderIssues();
     } catch (e) {
       fail++;
       failures.push(`#${issue.number}: ${e.message}`);
     }
-    // GitHub API rate-limit 보호 (closed 이슈는 commit이라 더 보수적)
-    if (isClosed && idx < runTargets.length - 1) await new Promise(r => setTimeout(r, 350));
+    // GitHub API rate-limit 보호
+    if (idx < runTargets.length - 1) await new Promise(r => setTimeout(r, isClosed ? 400 : 250));
   }
 
   if (btn) {
     btn.disabled = false;
     btn.textContent = `🔁 선택 일괄 AI 재분류 (${SELECTED.size})`;
   }
-  renderIssues();
-  const summary = `완료: ✅${ok} / ❌${fail} (총 ${runTargets.length})` +
+  // GitHub 라벨 변경이 반영되도록 이슈 목록 새로고침
+  if (notified > 0) {
+    try { await loadIssues(); } catch {}
+  } else {
+    renderIssues();
+  }
+  const summary =
+    `재분류 완료: ✅${ok} / ❌${fail} (총 ${runTargets.length})` +
+    (notified > 0 ? `\n검토자 재검토 요청: 🔔${notified}건 — 검토자 큐에 '미검토'로 다시 표시됩니다.` : '') +
     (failures.length ? `\n\n실패 항목 (최대 10개):\n${failures.slice(0, 10).join('\n')}` : '');
   alert(summary);
 }
