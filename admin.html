@@ -674,7 +674,8 @@ function renderIssueList(issues) {
       <span style="color:var(--muted);font-size:13px">선택: <strong id="selected-count">${SELECTED.size}</strong>건</span>
       <button class="refresh-btn" onclick="bulkApproveSelected()" id="btn-bulk-selected"
               ${SELECTED.size === 0 ? 'disabled' : ''}
-              style="background:#3a6a3a;border-color:#5aa05a;color:#cfe9cf">
+              style="background:#3a6a3a;border-color:#5aa05a;color:#cfe9cf"
+              title="⚠️ 선택한 이슈를 GitHub 아카이브에 영구 커밋·이슈 닫기. 타이핑 확인 필요.">
         ⚡ 선택 일괄 승인 (${SELECTED.size})
       </button>
       <button class="refresh-btn" onclick="bulkRegenerateSelected()" id="btn-bulk-regen"
@@ -682,6 +683,12 @@ function renderIssueList(issues) {
               style="background:#3a3a6a;border-color:#6a6aaa;color:#c8c8ff"
               title="선택한 이슈에 대해 AI 자동 분류 재생성을 일괄 적용 (개별 diff 확인 없이 바로 적용)">
         🔁 선택 일괄 AI 재분류 (${SELECTED.size})
+      </button>
+      <button class="refresh-btn" onclick="bulkRecallSelected()" id="btn-bulk-recall"
+              ${SELECTED.size === 0 ? 'disabled' : ''}
+              style="background:#5a2a2a;border-color:#a05050;color:#ffb0b0"
+              title="⚠️ 선택한 이슈를 일괄 회수 (.md 삭제 + 이슈 재오픈). 사후 반려 / 의도치 않은 일괄 승인 되돌림용.">
+        🔄 선택 일괄 회수 (${SELECTED.size})
       </button>
       <button class="refresh-btn" onclick="clearSelection()" ${SELECTED.size === 0 ? 'disabled' : ''}>해제</button>
       <span style="margin-left:auto;color:var(--muted);font-size:12px">
@@ -801,6 +808,11 @@ function updateSelectionBar() {
     rb.textContent = `🔁 선택 일괄 AI 재분류 (${SELECTED.size})`;
     rb.disabled = SELECTED.size === 0;
   }
+  const rcb = document.getElementById('btn-bulk-recall');
+  if (rcb) {
+    rcb.textContent = `🔄 선택 일괄 회수 (${SELECTED.size})`;
+    rcb.disabled = SELECTED.size === 0;
+  }
 }
 
 function currentFilteredIssues() {
@@ -817,7 +829,11 @@ function currentFilteredIssues() {
 async function bulkApproveSelected() {
   if (SELECTED.size === 0) { alert('선택된 항목이 없습니다.'); return; }
   const targets = allIssues.filter(i => SELECTED.has(i.number));
-  if (!confirm(`선택한 ${targets.length}건을 자동 경로로 일괄 승인합니다.\n\n각 항목은 자동 폴더 + 자동 파일명 + 자동 변환 md로 처리됩니다.\n계속할까요?`)) return;
+  // 위험: 일괄 GitHub 커밋 + 이슈 닫기 — 잘못 누르면 수십건이 아카이브로 영구 등록됨.
+  // 1차 confirm + 2차 타이핑 게이트.
+  if (!confirm(`⚠️ 위험 작업\n\n선택한 ${targets.length}건을 GitHub 아카이브에 영구 커밋하고 이슈를 닫습니다.\n자동 폴더 + 자동 파일명 + 자동 변환 md.\n\n되돌리려면 일괄 회수가 필요합니다.\n진행할까요?`)) return;
+  const typed = prompt(`확인을 위해 정확히 다음 문구를 입력하세요:\n\n승인 ${targets.length}건\n\n(취소하려면 빈 칸 또는 OK 외 다른 값)`);
+  if (typed !== `승인 ${targets.length}건`) { alert('타이핑이 일치하지 않아 취소됩니다.'); return; }
 
   const box = document.getElementById('bulk-progress');
   box.style.display = 'block';
@@ -1313,6 +1329,76 @@ async function diffApply() {
   }
 }
 
+// 선택된 이슈 일괄 회수 — .md 삭제 + 이슈 reopen.
+// 의도치 않은 일괄 승인을 되돌릴 때 사용.
+async function bulkRecallSelected() {
+  if (!adminSecret) { alert('먼저 관리자 비밀번호를 입력하세요'); return; }
+  if (SELECTED.size === 0) { alert('선택된 항목이 없습니다.'); return; }
+  const targets = allIssues.filter(i => SELECTED.has(i.number));
+  // 회수 대상은 closed인 이슈만 의미 있음
+  const closedTargets = targets.filter(i => i.state === 'closed');
+  const skipOpen = targets.length - closedTargets.length;
+  if (closedTargets.length === 0) {
+    alert(`선택 ${targets.length}건 모두 이미 open 상태 (회수 대상 아님).`);
+    return;
+  }
+
+  const warning =
+    `⚠️ 회수 작업\n\n` +
+    `선택 ${targets.length}건 중 ${closedTargets.length}건 (closed)을 회수합니다.\n` +
+    `· GitHub Pages에서 .md 파일 삭제\n` +
+    `· 이슈 다시 열림 (open)\n` +
+    `· 회수 코멘트 추가\n` +
+    (skipOpen > 0 ? `· (${skipOpen}건 open은 스킵)\n` : '') +
+    `\n진행할까요?`;
+  if (!confirm(warning)) return;
+
+  const typed = prompt(`확인을 위해 정확히 다음 문구를 입력하세요:\n\n회수 ${closedTargets.length}건\n\n(취소하려면 빈 칸)`);
+  if (typed !== `회수 ${closedTargets.length}건`) { alert('타이핑이 일치하지 않아 취소됩니다.'); return; }
+
+  const reason = prompt('일괄 회수 사유를 입력하세요 (모든 항목에 동일 적용):',
+                        '의도치 않은 일괄 승인 되돌림');
+  if (!reason) { alert('사유 미입력 — 취소됩니다.'); return; }
+
+  const btn = document.getElementById('btn-bulk-recall');
+  if (btn) { btn.disabled = true; }
+  let ok = 0, fail = 0;
+  const failures = [];
+  for (let idx = 0; idx < closedTargets.length; idx++) {
+    const issue = closedTargets[idx];
+    if (btn) btn.textContent = `🔄 회수 중 ${idx + 1}/${closedTargets.length} (#${issue.number})`;
+    try {
+      const res = await fetch(`${WORKER_URL}/admin/recall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
+        body: JSON.stringify({ issue_number: issue.number, reason }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        ok++;
+      } else {
+        fail++;
+        failures.push(`#${issue.number}: ${data.error || 'unknown'}`);
+      }
+    } catch (e) {
+      fail++;
+      failures.push(`#${issue.number}: ${e.message}`);
+    }
+    // GitHub API rate-limit 보호
+    if (idx < closedTargets.length - 1) await new Promise(r => setTimeout(r, 400));
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = `🔄 선택 일괄 회수 (${SELECTED.size})`;
+  }
+  try { await loadIssues(); } catch {}
+  alert(
+    `회수 완료: ✅${ok} / ❌${fail} (총 ${closedTargets.length})` +
+    (failures.length ? `\n\n실패 항목 (최대 10개):\n${failures.slice(0, 10).join('\n')}` : '')
+  );
+}
+
 // 선택된 이슈 일괄 AI 재분류 (개별 diff 모달 없이 바로 적용)
 // 같은 종류의 자료를 수십 건 한 번에 처리할 때 사용.
 async function bulkRegenerateSelected() {
@@ -1602,10 +1688,10 @@ async function bulkApproveFiltered() {
   }
   if (filtered.length === 0) { alert('일괄 승인할 항목이 없습니다.'); return; }
 
-  const yes = confirm(`현재 필터 결과 ${filtered.length}건을 자동 경로로 일괄 승인합니다.\n\n` +
-                      `각 항목은 자동 폴더 + 자동 파일명 + 자동 변환 md로 처리됩니다.\n` +
-                      `(개별 검수가 필요하면 카드 클릭 → 모달에서 처리하세요.)\n\n계속할까요?`);
+  const yes = confirm(`⚠️ 위험 작업\n\n현재 필터 결과 ${filtered.length}건을 GitHub 아카이브에 영구 커밋하고 이슈를 닫습니다.\n자동 폴더 + 자동 파일명 + 자동 변환 md.\n\n되돌리려면 일괄 회수가 필요합니다.\n진행할까요?`);
   if (!yes) return;
+  const typed = prompt(`확인을 위해 정확히 다음 문구를 입력하세요:\n\n승인 ${filtered.length}건\n\n(취소하려면 빈 칸)`);
+  if (typed !== `승인 ${filtered.length}건`) { alert('타이핑이 일치하지 않아 취소됩니다.'); return; }
 
   const box = document.getElementById('bulk-progress');
   box.style.display = 'block';
